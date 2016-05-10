@@ -84,82 +84,49 @@
 
 
 
-<meta name="description" content="####导语：####
-
+<meta name="description" content="导语：
 
 我们在职业生涯中，经常会听到同行的大牛说：“要针对接口编程，而不是针对实现编程”；“优先使用组合而不是继承”。那么今天我就来谈谈对象组合与继承。
 
 
+继承和组合是什么
+继承的优缺点
+组合的优缺点
 
 继承和组合是什么
 
-
-
-继承的优缺点
-
-
-
-组合的优缺点
-
-
-
-###继承和组合是什么
-
-
- 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱">
+ 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱复用(white-box reuse)，因为">
 <meta property="og:type" content="article">
 <meta property="og:title" content="浅谈对象组合和继承">
 <meta property="og:url" content="https://github.com/q195945056/2016/05/10/浅谈对象组合和继承/index.html">
 <meta property="og:site_name" content="ADH">
-<meta property="og:description" content="####导语：####
-
+<meta property="og:description" content="导语：
 
 我们在职业生涯中，经常会听到同行的大牛说：“要针对接口编程，而不是针对实现编程”；“优先使用组合而不是继承”。那么今天我就来谈谈对象组合与继承。
 
 
+继承和组合是什么
+继承的优缺点
+组合的优缺点
 
 继承和组合是什么
 
-
-
-继承的优缺点
-
-
-
-组合的优缺点
-
-
-
-###继承和组合是什么
-
-
- 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱">
-<meta property="og:updated_time" content="2016-05-10T10:20:42.000Z">
+ 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱复用(white-box reuse)，因为">
+<meta property="og:updated_time" content="2016-05-10T10:22:51.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="浅谈对象组合和继承">
-<meta name="twitter:description" content="####导语：####
-
+<meta name="twitter:description" content="导语：
 
 我们在职业生涯中，经常会听到同行的大牛说：“要针对接口编程，而不是针对实现编程”；“优先使用组合而不是继承”。那么今天我就来谈谈对象组合与继承。
 
 
+继承和组合是什么
+继承的优缺点
+组合的优缺点
 
 继承和组合是什么
 
-
-
-继承的优缺点
-
-
-
-组合的优缺点
-
-
-
-###继承和组合是什么
-
-
- 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱">
+ 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱复用(white-box reuse)，因为">
 
 
 
@@ -383,42 +350,28 @@
       
 
       
-        <p>####导语：####</p>
-<hr>
+        <h4 id="导语："><a href="#导语：" class="headerlink" title="导语："></a>导语：</h4><hr>
 <blockquote>
 <p>我们在职业生涯中，经常会听到同行的大牛说：“要针对接口编程，而不是针对实现编程”；“优先使用组合而不是继承”。那么今天我就来谈谈对象组合与继承。</p>
 </blockquote>
-<ul>
-<li><ol>
+<ol>
 <li>继承和组合是什么</li>
-</ol>
-</li>
-<li><ol>
 <li>继承的优缺点</li>
-</ol>
-</li>
-<li><ol>
 <li>组合的优缺点</li>
 </ol>
-</li>
-</ul>
-<p>###继承和组合是什么</p>
-<hr>
+<h3 id="继承和组合是什么"><a href="#继承和组合是什么" class="headerlink" title="继承和组合是什么"></a>继承和组合是什么</h3><hr>
 <blockquote>
 <p> 类继承或子类化让我们可以使用其它类来定义类的实现（使用superClass来定义subClass的实现）。子类化常常被称为白箱复用(white-box reuse)，因为superClass的内部描述与细节通常对子类可见。<br>对象组合要求被组合的对象具有良好的接口，并且通过从其他对象得到的引用在运行时运态定义。所以可以将对象组合到其他对象中，以构建更加复杂的功能。由于对象的内部细节对其他对象不可见，它们看上去为“黑箱”，这种类型的复用称为黑箱复用(black-box reuse)。<br>这就是我们常说的白箱复用和黑箱复用。</p>
 </blockquote>
-<p>###继承的优缺点</p>
-<hr>
+<h3 id="继承的优缺点"><a href="#继承的优缺点" class="headerlink" title="继承的优缺点"></a>继承的优缺点</h3><hr>
 <blockquote>
-<p>那么使用类继承或子类化都有些什么优缺点呢:<br>优点： 1，类继承简单粗爆，直观，关系在编译时静态定义。<br>2，被复用的实现易于修改，sub可以覆盖super的实现。<br>缺点：1，无法在运行时变更从super继承来的实现（也不一定是缺点）<br>2，sub的部分实现通常定义在super中。<br>3，sub直接面对super的实现细节，因此破坏了封装。<br>4，super实现的任何变更都会强制子类也进行变更，因为它们的实现联系在了一起。<br>5，如果在新的问题场景下继承来的实现已过时或不适用，所以必须重写super或继承来的实现。<br>由于在类继承中，实现的依存关系，对子类进行复用可能会有问题。有一个解决办法是，只从协议或抽象基类继承(子类型化)，国为它们只对很少的实现，而协议则没有实现。</p>
+<p>那么使用类继承或子类化都有些什么优缺点呢:<br>优点：<br>1，类继承简单粗爆，直观，关系在编译时静态定义。<br>2，被复用的实现易于修改，sub可以覆盖super的实现。<br>缺点：1，无法在运行时变更从super继承来的实现（也不一定是缺点）<br>2，sub的部分实现通常定义在super中。<br>3，sub直接面对super的实现细节，因此破坏了封装。<br>4，super实现的任何变更都会强制子类也进行变更，因为它们的实现联系在了一起。<br>5，如果在新的问题场景下继承来的实现已过时或不适用，所以必须重写super或继承来的实现。<br>由于在类继承中，实现的依存关系，对子类进行复用可能会有问题。有一个解决办法是，只从协议或抽象基类继承(子类型化)，国为它们只对很少的实现，而协议则没有实现。</p>
 </blockquote>
-<p>###组合的优缺点</p>
-<hr>
+<h3 id="组合的优缺点"><a href="#组合的优缺点" class="headerlink" title="组合的优缺点"></a>组合的优缺点</h3><hr>
 <blockquote>
 <p>对象组合让我们同时使用多个对象，而每个对象都假定其他对象的接口正常运行。因此，为了在系统中正常运行，它们的接口都需要经过精心的设计。下面我就来说说他的优缺点<br>优点：1，不会破坏封装，因为只通过接口来访问对象；<br>2，减少实现的依存关系，因为实面是通过接口来定义的；<br>3，可以在运行时将任意对象替换为其他同类型的对象；<br>4，可以保持类的封装以专注于单一任务；<br>5，类和他的层次结构能保持简洁，不至于过度膨胀而无法管理；<br>缺点：1，涉及对象多；<br>2，系统的行为将依赖于不同对象间的关系，而不是定义于单个类中；<br>3，现成的组件总是不太够用，从而导致我们要不停的定义新对象。</p>
 </blockquote>
-<p>####结语：</p>
-<hr>
+<h4 id="结语："><a href="#结语：" class="headerlink" title="结语："></a>结语：</h4><hr>
 <blockquote>
 <p>尽管有以上缺点，对象组合仍然对系统设计有很多好处。我们可以通过在一些部分用类继承来克服这些缺点，使得利用已有组件创建新的组件较为容易。当然，该用类继承时 还是用类继承吧</p>
 </blockquote>
@@ -589,7 +542,7 @@
               
             
             
-              <p class="post-toc-empty">此文章未包含目录</p>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#导语："><span class="nav-number">1.</span> <span class="nav-text">导语：</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#继承和组合是什么"><span class="nav-number"></span> <span class="nav-text">继承和组合是什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#继承的优缺点"><span class="nav-number"></span> <span class="nav-text">继承的优缺点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#组合的优缺点"><span class="nav-number"></span> <span class="nav-text">组合的优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#结语："><span class="nav-number">1.</span> <span class="nav-text">结语：</span></a></li></ol></div>
             
           </div>
         </section>
