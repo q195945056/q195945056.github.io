@@ -253,371 +253,6 @@
             
               
                 
-                <a class="post-title-link" href="/2016/05/10/Objective-C运行时原理（三）：消息和消息转发/" itemprop="url">
-                  Objective-C运行时原理（三）：消息和消息转发
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-05-10T17:09:12+08:00" content="2016-05-10">
-              2016-05-10
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Objective-C/" itemprop="url" rel="index">
-                    <span itemprop="name">Objective-C</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2016/05/10/Objective-C运行时原理（三）：消息和消息转发/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/Objective-C运行时原理（三）：消息和消息转发/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <blockquote>
-<p>[receiver message];</p>
-</blockquote>
-<p>objective-c的这种有趣的语法被苹果称为“发消息”。与其他面向对象语言(C++/Java)的“方法调用”不同，objc的消息机制是由运行时实现、非常灵活动态。这篇文章简单记录一下objc运行时对于消息发送和转发的实现。</p>
-<h1 id="1-编译器的转换"><a href="#1-编译器的转换" class="headerlink" title="1.编译器的转换"></a>1.编译器的转换</h1><pre><code>[receiver message];
-</code></pre><p>这一句的含义是：向receiver发送名为message的消息。</p>
-<blockquote>
-<p>clang -rewrite-objc MyClass.m</p>
-</blockquote>
-<p>执行上面的命令，将这一句重写为C代码，是这样的：</p>
-<pre><code>((void (*)(id, SEL))(void *)objc_msgSend)((id)receiver, sel_registerName(&quot;message&quot;));
-</code></pre><p>去掉那些强制转换，最终[receiver message]会由编译器转化为以下的纯C调用。</p>
-<pre><code>objc_msgSend(receiver, @selector(message));
-</code></pre><p>所以说，objc发送消息，最终大都会转换为objc_msgSend的方法调用。</p>
-<p>苹果在文档里是这么写的：</p>
-<pre><code>id objc_msgSend(id self, SEL _cmd, ...)
-</code></pre><p>将一个消息发送给一个对象，并且返回一个值。</p>
-<p>其中，self是消息的接受者，_cmd是selector， …是可变参数列表。</p>
-<p>当向一般对象发送消息时，调用<code>objc_msgSend；</code>当向super发送消息时，调用的是<code>objc_msgSendSuper；</code> 如果返回值是一个结构体，则会调用<code>objc_msgSend_stret</code>或<code>objc_msgSendSuper_stret</code>。</p>
-<h1 id="2-运行时定义的数据结构"><a href="#2-运行时定义的数据结构" class="headerlink" title="2.运行时定义的数据结构"></a>2.运行时定义的数据结构</h1><p>为了了解objc_msgSend方法做了什么，这里需要查看一下objc runtime的<a href="http://www.opensource.apple.com/tarballs/objc4/" target="_blank" rel="external">源码</a>。</p>
-<p>首先 runtime定义了如下的数据类型：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">typedef struct objc_class *Class;</span><br><span class="line">typedef struct objc_object *id;</span><br><span class="line">struct objc_object &#123;</span><br><span class="line">    Class isa;</span><br><span class="line">&#125;;</span><br><span class="line">struct objc_class &#123;</span><br><span class="line">    Class isa;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">/// 不透明结构体, selector</span><br><span class="line">typedef struct objc_selector *SEL;</span><br><span class="line"></span><br><span class="line">/// 函数指针, 用于表示对象方法的实现</span><br><span class="line">typedef id (*IMP)(id, SEL, ...);</span><br></pre></td></tr></table></figure></p>
-<p><code>id</code>指代objc中的对象，每个对象的在内存的结构并不是确定的，但其首地址指向的肯定是isa。通过isa指针，运行时就能获取到<code>objc_class</code>。</p>
-<p><code>objc_class</code>表示对象的Class，它的结构是确定的，由编译器生成。</p>
-<p>SEL表示选择器，这是一个不透明结构体。但是实际上，通常可以把它理解为一个字符串。例如<code>printf(&quot;%s&quot;,@selector(isEqual:))</code>会打印出”isEqual:”。运行时维护着一张SEL的表，将相同字符串的方法名映射到唯一一个SEL。  通过<code>sel_registerName(char *name)</code>方法，可以查找到这张表中方法名对应的SEL。苹果提供了一个语法糖<code>@selector</code>用来方便地调用该函数。</p>
-<p>IMP是一个函数指针。objc中的方法最终会被转换成纯C的函数，IMP就是为了表示这些函数的地址。</p>
-<p>了解了这些基础的类型定义后，clang翻译的代码就能看懂了：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">///objc代码</span><br><span class="line">@implementation NyanCat</span><br><span class="line">+ (void)nyan &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p"</span>,self, _cmd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (int) <span class="built_in">set</span>Object:(id)obj <span class="keyword">for</span>Key:(id)key &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p %p %p"</span>,self, _cmd, obj, key);</span><br><span class="line">    <span class="built_in">return</span> 0;</span><br><span class="line">&#125;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">///c翻译的版本</span><br><span class="line">static void _C_NyanCat_nyan(Class self, SEL _cmd) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p"</span>,self, _cmd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">static int _I_NyanCat_<span class="built_in">set</span>Object_<span class="keyword">for</span>Key_(NyanCat * self, SEL _cmd, id obj, id key) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p %p %p"</span>,self, _cmd, obj, key);</span><br><span class="line">    <span class="built_in">return</span> 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>这里就可以看出来了，实际上消息发送，最终会转换成调用C函数。<code>obj_msgSend</code>的实际动作就是：找到这个函数指针，然后调用它。</p>
-<p>#3.obj_msgSend的动作<br>为了加快速度，苹果对这个方法做了很多优化，这个方法是用汇编实现的。我汇编渣渣。。所以这里稍微整理一下，用伪代码表示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">id objc_msgSend(id self, SEL op, ...) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!self) <span class="built_in">return</span> nil;</span><br><span class="line">    IMP imp = class_getMethodImplementation(self-&gt;isa, SEL op);</span><br><span class="line">    imp(self, op, ...); //调用这个函数，伪代码...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//查找IMP</span><br><span class="line">IMP class_getMethodImplementation(Class cls, SEL sel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cls || !sel) <span class="built_in">return</span> nil;</span><br><span class="line">    IMP imp = lookUpImpOrNil(cls, sel);</span><br><span class="line">    <span class="keyword">if</span> (!imp) <span class="built_in">return</span> _objc_msgForward; //这个是用于消息转发的</span><br><span class="line">    <span class="built_in">return</span> imp;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">IMP lookUpImpOrNil(Class cls, SEL sel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cls-&gt;initialize()) &#123;</span><br><span class="line">        _class_initialize(cls);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Class curClass = cls;</span><br><span class="line">    IMP imp = nil;</span><br><span class="line">    <span class="keyword">do</span> &#123; //先查缓存,缓存没有时重建,仍旧没有则向父类查询</span><br><span class="line">        <span class="keyword">if</span> (!curClass) <span class="built_in">break</span>;</span><br><span class="line">        <span class="keyword">if</span> (!curClass-&gt;cache) fill_cache(cls, curClass);</span><br><span class="line">        imp = cache_getImp(curClass, sel);</span><br><span class="line">        <span class="keyword">if</span> (imp) <span class="built_in">break</span>;</span><br><span class="line">    &#125; <span class="keyword">while</span> (curClass = curClass-&gt;superclass);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">return</span> imp;</span><br><span class="line">&#125;</span><br><span class="line">`objc_msgSend`的动作比较清晰：首先在Class中的缓存查找imp（没缓存则初始化缓存），如果没找到，则向父类的Class查找。如果一直查找到根类仍旧没有实现，则用`_objc_msgForward`函数指针代替imp。最后，执行这个imp。</span><br><span class="line"></span><br><span class="line">`_objc_msgForward`是用于消息转发的。这个函数的实现并没有在objc-runtime的开源代码里面，而是在Foundation框架里面实现的。加上断点启动程序后，会发现__CFInitialize这个方法会调用objc_<span class="built_in">set</span>ForwardHandler函数来注册一个实现。</span><br><span class="line"><span class="comment"># 4.消息转发</span></span><br><span class="line">上面可以知道，当向一个对象发送一条消息，但它并没有实现的时候，_objc_msgForward会尝试做消息转发。为了展示消息转发的具体动作，这里尝试向一个对象发送一条错误的消息，并查看一下_objc_msgForward是如何进行转发的。</span><br><span class="line"></span><br><span class="line">首先开启调试模式、打印出所有运行时发送的消息：</span><br><span class="line">可以在代码里执行下面的方法：</span><br><span class="line">``` bash</span><br><span class="line">(void)instrumentObjcMessageSends(YES);</span><br></pre></td></tr></table></figure></p>
-<p>或者暂停程序运行，并在gdb中输入下面的命令：</p>
-<blockquote>
-<p>call (void)instrumentObjcMessageSends(YES)<br>之后，运行时发送的所有消息都会打印到/tmp/msgSend-xxxx文件里了。</p>
-</blockquote>
-<p>这里执行以下语句，向一个对象发送一条错误的消息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Test *<span class="built_in">test</span> = [Test new];</span><br><span class="line">[<span class="built_in">test</span> performSelector(@selector(xxx))];</span><br></pre></td></tr></table></figure></p>
-<p>打印出来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">+ Test NSObject initialize</span><br><span class="line">+ Test NSObject new</span><br><span class="line">+ Test NSObject alloc</span><br><span class="line">+ Test NSObject allocWithZone:</span><br><span class="line">- Test NSObject init</span><br><span class="line">- Test NSObject performSelector:</span><br><span class="line">+ Test NSObject resolveInstanceMethod:</span><br><span class="line">- Test NSObject forwardingTargetForSelector:</span><br><span class="line">- Test NSObject methodSignatureForSelector:</span><br><span class="line">- Test NSObject class</span><br><span class="line">- Test NSObject doesNotRecognizeSelector:</span><br></pre></td></tr></table></figure></p>
-<p>结合NSObject文档可以知道，<code>_objc_msgForward</code>消息转发做了如下几件事：</p>
-<ol>
-<li>调用resolveInstanceMethod:方法，允许用户在此时为该Class动态添加实现。如果有实现了，则调用并返回。如果仍没实现，继续下面的动作。</li>
-<li>调用forwardingTargetForSelector:方法，尝试找到一个能响应该消息的对象。如果获取到，则直接转发给它。如果返回了nil，继续下面的动作。</li>
-<li>调用methodSignatureForSelector:方法，尝试获得一个方法签名。如果获取不到，则直接调用doesNotRecognizeSelector抛出异常。</li>
-<li>调用forwardInvocation:方法，将地3步获取到的方法签名包装成Invocation传入，如何处理就在这里面了。</li>
-</ol>
-<p>上面这4个方法均是模板方法，开发者可以override，由runtime来调用。最常见的实现消息转发，就是重写方法3和4，吞掉一个消息或者代理给其他对象都是没问题的。</p>
-<h1 id="5-其他注意事项"><a href="#5-其他注意事项" class="headerlink" title="5.其他注意事项"></a>5.其他注意事项</h1><p>由上面介绍可以知道，一个objc程序启动后，需要进行类的初始化、调用方法时的cache初始化，所以会有一段”热身”的时间。之后，再发送消息的时候就直接走缓存了，所以消息发送的效率非常高，且没有牺牲动态特性。</p>
-<p>如果希望避免方法查找带来的那一<a href="http://vagase.me/blog/dig-objc-msgsend/" target="_blank" rel="external">丁点</a>开销，可以用<code>methodForSelector</code> 手动获得IMP来直接调用。用 <code>methodForSelector</code> 获取IMP时，会尝试forward机制， 所以在没有对应方法时，返回的是 <code>_objc_msgForward</code> ，不会返回NULL。</p>
-<p>用 <code>respondsToSelector</code> 判断对象是否能响应消息时, 会避开forward机制 ，但是该方法会尝试一次<code>resolveInstanceMethod</code>。</p>
-<p>PS: stackoverflow上有两个不错的文章：<a href="http://stackoverflow.com/questions/15178395/how-does-forwardinvocation-get-called" target="_blank" rel="external">1</a>  <a href="http://stackoverflow.com/questions/4574465/objective-c-respondstoselector-question" target="_blank" rel="external">2</a><br>本文转自<a href="http://blog.ibireme.com/2013/11/26/objective-c-messaging/" target="_blank" rel="external">Objective-C 中的消息与消息转发</a>。</p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/05/10/Objective-C运行时原理（二）：Category/" itemprop="url">
-                  Objective-C运行时原理（二）：Category
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-05-10T16:39:23+08:00" content="2016-05-10">
-              2016-05-10
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Objective-C/" itemprop="url" rel="index">
-                    <span itemprop="name">Objective-C</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2016/05/10/Objective-C运行时原理（二）：Category/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/Objective-C运行时原理（二）：Category/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h1><p>无论一个类设计的多么完美，在未来的需求演进中，都有可能会碰到一些无法预测的情况。那怎么扩展已有的类呢？一般而言，继承和组合是不错的选择。但是在Objective-C 2.0中，又提供了category这个语言特性，可以动态地为已有类添加新行为。如今category已经遍布于Objective-C代码的各个角落，从Apple官方的framework到各个开源框架，从功能繁复的大型APP到简单的应用，catagory无处不在。本文对category做了比较全面的整理，希望对读者有所裨益。</p>
-<h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>本文作者来自美团酒店旅游事业群iOS研发组。我们致力于创造价值、提升效率、追求卓越。欢迎大家加入我们（简历请发送到邮箱majia03@meituan.com）。<br>本文系学习Objective-C的runtime源码时整理所成，主要剖析了category在runtime层的实现原理以及和category相关的方方面面，内容包括：</p>
-<ul>
-<li>初入宝地-category简介</li>
-<li>连类比事-category和extension</li>
-<li>挑灯细览-category真面目</li>
-<li>追本溯源-category如何加载</li>
-<li>旁枝末叶-category和+load方法</li>
-<li>触类旁通-category和方法覆盖</li>
-<li>更上一层-category和关联对象</li>
-</ul>
-<h1 id="1、初入宝地-category简介"><a href="#1、初入宝地-category简介" class="headerlink" title="1、初入宝地-category简介"></a>1、初入宝地-category简介</h1><p>category是Objective-C 2.0之后添加的语言特性，category的主要作用是为已经存在的类添加方法。除此之外，apple还推荐了category的另外两个使用场景<a href="https://developer.apple.com/library/ios/documentation/General/Conceptual/DevPedia-CocoaCore/Category.html" target="_blank" rel="external">1</a></p>
-<ul>
-<li>可以把类的实现分开在几个不同的文件里面。这样做有几个显而易见的好处，a)可以减少单个文件的体积 b)可以把不同的功能组织到不同的category里 c)可以由多个开发者共同完成一个类 d)可以按需加载想要的category 等等。</li>
-<li>声明私有方法</li>
-</ul>
-<p>不过除了apple推荐的使用场景，广大开发者脑洞大开，还衍生出了category的其他几个使用场景：</p>
-<ul>
-<li>模拟多继承</li>
-<li>把framework的私有方法公开<br>Objective-C的这个语言特性对于纯动态语言来说可能不算什么，比如javascript，你可以随时为一个“类”或者对象添加任意方法和实例变量。但是对于不是那么“动态”的语言而言，这确实是一个了不起的特性。</li>
-</ul>
-<h1 id="2、连类比事-category和extension"><a href="#2、连类比事-category和extension" class="headerlink" title="2、连类比事-category和extension"></a>2、连类比事-category和extension</h1><p>extension看起来很像一个匿名的category，但是extension和有名字的category几乎完全是两个东西。 extension在编译期决议，它就是类的一部分，在编译期和头文件里的@interface以及实现文件里的@implement一起形成一个完整的类，它伴随类的产生而产生，亦随之一起消亡。extension一般用来隐藏类的私有信息，你必须有一个类的源码才能为一个类添加extension，所以你无法为系统的类比如NSString添加extension。（详见<a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/CustomizingExistingClasses/CustomizingExistingClasses.html" target="_blank" rel="external">2</a>）</p>
-<p>但是category则完全不一样，它是在运行期决议的。<br>就category和extension的区别来看，我们可以推导出一个明显的事实，extension可以添加实例变量，而category是无法添加实例变量的（因为在运行期，对象的内存布局已经确定，如果添加实例变量就会破坏类的内部布局，这对编译型语言来说是灾难性的）。</p>
-<h1 id="3、挑灯细览-category真面目"><a href="#3、挑灯细览-category真面目" class="headerlink" title="3、挑灯细览-category真面目"></a>3、挑灯细览-category真面目</h1><p>我们知道，所有的OC类和对象，在runtime层都是用struct表示的，category也不例外，在runtime层，category用结构体category_t（在objc-runtime-new.h中可以找到此定义），它包含了</p>
-<ol>
-<li>类的名字（name）</li>
-<li>类（cls）</li>
-<li>category中所有给类添加的实例方法的列表（instanceMethods）</li>
-<li>category中所有添加的类方法的列表（classMethods）</li>
-<li>category实现的所有协议的列表（protocols）</li>
-<li>category中添加的所有属性（instanceProperties）</li>
-</ol>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">typedef struct category_t &#123;</span><br><span class="line">    const char *name;</span><br><span class="line">    classref_t cls;</span><br><span class="line">    struct method_list_t *instanceMethods;</span><br><span class="line">    struct method_list_t *classMethods;</span><br><span class="line">    struct protocol_list_t *protocols;</span><br><span class="line">    struct property_list_t *instanceProperties;</span><br><span class="line">&#125; category_t;</span><br></pre></td></tr></table></figure>
-<p>从category的定义也可以看出category的可为（可以添加实例方法，类方法，甚至可以实现协议，添加属性）和不可为（无法添加实例变量）。<br>ok，我们先去写一个category看一下category到底为何物：</p>
-<p>MyClass.h：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import &lt;Foundation/Foundation.h&gt;</span></span><br><span class="line"></span><br><span class="line">@interface MyClass : NSObject</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@interface MyClass(MyAddition)</span><br><span class="line"></span><br><span class="line">@property(nonatomic, copy) NSString *name;</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
-<p>MyClass.m：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import "MyClass.h"</span></span><br><span class="line"></span><br><span class="line">@implementation MyClass</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name</span><br><span class="line">&#123;</span><br><span class="line">    NSLog(@<span class="string">"%@"</span>,@<span class="string">"MyClass"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation MyClass(MyAddition)</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name</span><br><span class="line">&#123;</span><br><span class="line">    NSLog(@<span class="string">"%@"</span>,@<span class="string">"MyAddition"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
-<p>我们使用clang的命令去看看category到底会变成什么：</p>
-<blockquote>
-<p>clang -rewrite-objc MyClass.m</p>
-</blockquote>
-<p>好吧，我们得到了一个3M大小，10w多行的.cpp文件（这绝对是Apple值得吐槽的一点），我们忽略掉所有和我们无关的东西，在文件的最后，我们找到了如下代码片段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">static struct /*_method_list_t*/ &#123;</span><br><span class="line">    unsigned int entsize;  // sizeof(struct _objc_method)</span><br><span class="line">    unsigned int method_count;</span><br><span class="line">    struct _objc_method method_list[1];</span><br><span class="line">&#125; _OBJC_<span class="variable">$_CATEGORY_INSTANCE_METHODS_MyClass_</span><span class="variable">$_MyAddition</span> __attribute__ ((used, section (<span class="string">"__DATA,__objc_const"</span>))) = &#123;</span><br><span class="line">    sizeof(_objc_method),</span><br><span class="line">    1,</span><br><span class="line">    &#123;&#123;(struct objc_selector *)<span class="string">"printName"</span>, <span class="string">"v16@0:8"</span>, (void *)_I_MyClass_MyAddition_<span class="built_in">print</span>Name&#125;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">static struct /*_prop_list_t*/ &#123;</span><br><span class="line">    unsigned int entsize;  // sizeof(struct _prop_t)</span><br><span class="line">    unsigned int count_of_properties;</span><br><span class="line">    struct _prop_t prop_list[1];</span><br><span class="line">&#125; _OBJC_<span class="variable">$_PROP_LIST_MyClass_</span><span class="variable">$_MyAddition</span> __attribute__ ((used, section     (<span class="string">"__DATA,__objc_const"</span>))) = &#123;</span><br><span class="line">    sizeof(_prop_t),</span><br><span class="line">    1,</span><br><span class="line">    &#123;&#123;<span class="string">"name"</span>,<span class="string">"T@\"NSString\",C,N"</span>&#125;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">extern <span class="string">"C"</span> __declspec(dllexport) struct _class_t OBJC_CLASS_<span class="variable">$_MyClass</span>;</span><br><span class="line"></span><br><span class="line">static struct _category_t _OBJC_<span class="variable">$_CATEGORY_MyClass_</span><span class="variable">$_MyAddition</span> __attribute__ ((used, section (<span class="string">"__DATA,__objc_const"</span>))) =</span><br><span class="line">&#123;</span><br><span class="line">    <span class="string">"MyClass"</span>,</span><br><span class="line">    0, // &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>,</span><br><span class="line">    (const struct _method_list_t *)&amp;_OBJC_<span class="variable">$_CATEGORY_INSTANCE_METHODS_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">    0,</span><br><span class="line">    0,</span><br><span class="line">    (const struct _prop_list_t *)&amp;_OBJC_<span class="variable">$_PROP_LIST_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static void OBJC_CATEGORY_SETUP_<span class="variable">$_MyClass_</span><span class="variable">$_MyAddition</span>(void ) &#123;</span><br><span class="line">    _OBJC_<span class="variable">$_CATEGORY_MyClass_</span><span class="variable">$_MyAddition</span>.cls = &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#pragma section(".objc_inithooks$B", long, read, write)</span></span><br><span class="line">__declspec(allocate(<span class="string">".objc_inithooks<span class="variable">$B</span>"</span>)) static void *OBJC_CATEGORY_SETUP[] = &#123;</span><br><span class="line">    (void *)&amp;OBJC_CATEGORY_SETUP_<span class="variable">$_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static struct _class_t *L_OBJC_LABEL_CLASS_$ [1] __attribute__((used, section (<span class="string">"__DATA, __objc_classlist,regular,no_dead_strip"</span>)))= &#123;</span><br><span class="line">    &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static struct _class_t *_OBJC_LABEL_NONLAZY_CLASS_$[] = &#123;</span><br><span class="line">    &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static struct _category_t *L_OBJC_LABEL_CATEGORY_$ [1] __attribute__((used, section (<span class="string">"__DATA, __objc_catlist,regular,no_dead_strip"</span>)))= &#123;</span><br><span class="line">    &amp;_OBJC_<span class="variable">$_CATEGORY_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>我们可以看到，</p>
-<ol>
-<li>首先编译器生成了实例方法列表OBJC$_CATEGORY_INSTANCE_METHODSMyClass$_MyAddition和属性列表OBJC$_PROP_LISTMyClass$_MyAddition，两者的命名都遵循了公共前缀+类名+category名字的命名方式，而且实例方法列表里面填充的正是我们在MyAddition这个category里面写的方法printName，而属性列表里面填充的也正是我们在MyAddition里添加的name属性。还有一个需要注意到的事实就是category的名字用来给各种列表以及后面的category结构体本身命名，而且有static来修饰，所以在同一个编译单元里我们的category名不能重复，否则会出现编译错误。</li>
-<li>其次，编译器生成了category本身OBJC$_CATEGORYMyClass$_MyAddition，并用前面生成的列表来初始化category本身。</li>
-<li>最后，编译器在DATA段下的objc_catlist section里保存了一个大小为1的category_t的数组L_OBJC<em>LABELCATEGORY$（当然，如果有多个category，会生成对应长度的数组^</em>^），用于运行期category的加载。<br>到这里，编译器的工作就接近尾声了，对于category在运行期怎么加载，我们下节揭晓。</li>
-</ol>
-<h1 id="4、追本溯源-category如何加载"><a href="#4、追本溯源-category如何加载" class="headerlink" title="4、追本溯源-category如何加载"></a>4、追本溯源-category如何加载</h1><p>我们知道，Objective-C的运行是依赖OC的runtime的，而OC的runtime和其他系统库一样，是OS X和iOS通过dyld动态加载的。<br>想了解更多dyld地同学可以移步这里（<a href="https://www.mikeash.com/pyblog/friday-qa-2012-11-09-dyld-dynamic-linking-on-os-x.html" target="_blank" rel="external">3</a>）。</p>
-<p>对于OC运行时，入口方法如下（在objc-os.mm文件中）：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">void _objc_init(void)</span><br><span class="line">&#123;</span><br><span class="line">    static bool initialized = <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">if</span> (initialized) <span class="built_in">return</span>;</span><br><span class="line">    initialized = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">    // fixme defer initialization until an objc-using image is found?</span><br><span class="line">    environ_init();</span><br><span class="line">    tls_init();</span><br><span class="line">    lock_init();</span><br><span class="line">    exception_init();</span><br><span class="line"></span><br><span class="line">    // Register <span class="keyword">for</span> unmap first, <span class="keyword">in</span> <span class="keyword">case</span> some +load unmaps something</span><br><span class="line">    _dyld_register_func_<span class="keyword">for</span>_remove_image(&amp;unmap_image);</span><br><span class="line">    dyld_register_image_state_change_handler(dyld_image_state_bound,</span><br><span class="line">1/*batch*/, &amp;map_images);</span><br><span class="line">    dyld_register_image_state_change_handler(dyld_image_state_dependents_initialized, 0/*not batch*/, &amp;load_images);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>category被附加到类上面是在map_images的时候发生的，在new-ABI的标准下，_objc_init里面的调用的map_images最终会调用objc-runtime-new.mm里面的_read_images方法，而在_read_images方法的结尾，有以下的代码片段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">// Discover categories. </span><br><span class="line"><span class="keyword">for</span> (EACH_HEADER) &#123;</span><br><span class="line">    category_t **catlist = _getObjc2CategoryList(hi, &amp;count);</span><br><span class="line">    <span class="keyword">for</span> (i = 0; i &lt; count; i++) &#123;</span><br><span class="line">        category_t *cat = catlist[i];</span><br><span class="line">        class_t *cls = remapClass(cat-&gt;cls);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!cls) &#123;</span><br><span class="line">            // Category<span class="string">'s target class is missing (probably weak-linked).</span><br><span class="line">            // Disavow any knowledge of this category.</span><br><span class="line">            catlist[i] = NULL;</span><br><span class="line">            if (PrintConnecting) &#123;</span><br><span class="line">                _objc_inform("CLASS: IGNORING category \?\?\?(%s) %p with "</span><br><span class="line">                "missing weak-linked target class",</span><br><span class="line">                cat-&gt;name, cat);</span><br><span class="line">            &#125;</span><br><span class="line">        continue;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Process this category. </span><br><span class="line">        // First, register the category with its target class. </span><br><span class="line">        // Then, rebuild the class'</span>s method lists (etc) <span class="keyword">if</span> </span><br><span class="line">        // the class is realized. </span><br><span class="line">        BOOL classExists = NO;</span><br><span class="line">        <span class="keyword">if</span> (cat-&gt;instanceMethods ||  cat-&gt;protocols ||  cat-&gt;instanceProperties)</span><br><span class="line">        &#123;</span><br><span class="line">            addUnattachedCategoryForClass(cat, cls, hi);</span><br><span class="line">            <span class="keyword">if</span> (isRealized(cls)) &#123;</span><br><span class="line">                remethodizeClass(cls);</span><br><span class="line">                classExists = YES;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (PrintConnecting) &#123;</span><br><span class="line">                _objc_inform(<span class="string">"CLASS: found category -%s(%s) %s"</span>,</span><br><span class="line">                getName(cls), cat-&gt;name,</span><br><span class="line">                classExists ? <span class="string">"on existing class"</span> : <span class="string">""</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (cat-&gt;classMethods  ||  cat-&gt;protocols /* ||  cat-&gt;classProperties */)</span><br><span class="line">        &#123;</span><br><span class="line">            addUnattachedCategoryForClass(cat, cls-&gt;isa, hi);</span><br><span class="line">            <span class="keyword">if</span> (isRealized(cls-&gt;isa)) &#123;</span><br><span class="line">                remethodizeClass(cls-&gt;isa);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (PrintConnecting) &#123;</span><br><span class="line">                _objc_inform(<span class="string">"CLASS: found category +%s(%s)"</span>,</span><br><span class="line">                getName(cls), cat-&gt;name);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>首先，我们拿到的catlist就是上节中讲到的编译器为我们准备的category_t数组，关于是如何加载catlist本身的，我们暂且不表，这和category本身的关系也不大，有兴趣的同学可以去研究以下Apple的二进制格式和load机制。<br>略去PrintConnecting这个用于log的东西，这段代码很容易理解：</p>
-<ol>
-<li>把category的实例方法、协议以及属性添加到类上</li>
-<li>把category的类方法和协议添加到类的metaclass上</li>
-</ol>
-<p>值得注意的是，在代码中有一小段注释 / || cat-&gt;classProperties /，看来苹果有过给类添加属性的计划啊。<br>ok，我们接着往里看，category的各种列表是怎么最终添加到类上的，就拿实例方法列表来说吧：<br>在上述的代码片段里，addUnattachedCategoryForClass只是把类和category做一个关联映射，而remethodizeClass才是真正去处理添加事宜的功臣。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">static void remethodizeClass(class_t *cls)</span><br><span class="line">&#123;</span><br><span class="line">    category_list *cats;</span><br><span class="line">    BOOL isMeta;</span><br><span class="line"></span><br><span class="line">    rwlock_assert_writing(&amp;runtimeLock);</span><br><span class="line"></span><br><span class="line">    isMeta = isMetaClass(cls);</span><br><span class="line"></span><br><span class="line">    // Re-methodizing: check <span class="keyword">for</span> more categories</span><br><span class="line">    <span class="keyword">if</span> ((cats = unattachedCategoriesForClass(cls))) &#123;</span><br><span class="line">        chained_property_list *newproperties;</span><br><span class="line">        const protocol_list_t **newprotos;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (PrintConnecting) &#123;</span><br><span class="line">            _objc_inform(<span class="string">"CLASS: attaching categories to class '%s' %s"</span>,</span><br><span class="line">            getName(cls), isMeta ? <span class="string">"(meta)"</span> : <span class="string">""</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Update methods, properties, protocols</span><br><span class="line"></span><br><span class="line">        BOOL vtableAffected = NO;</span><br><span class="line">        attachCategoryMethods(cls, cats, &amp;vtableAffected);</span><br><span class="line"></span><br><span class="line">        newproperties = buildPropertyList(NULL, cats, isMeta);</span><br><span class="line">        <span class="keyword">if</span> (newproperties) &#123;</span><br><span class="line">            newproperties-&gt;next = cls-&gt;data()-&gt;properties;</span><br><span class="line">            cls-&gt;data()-&gt;properties = newproperties;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        newprotos = buildProtocolList(cats, NULL, cls-&gt;data()-&gt;protocols);</span><br><span class="line">        <span class="keyword">if</span> (cls-&gt;data()-&gt;protocols  &amp;&amp;  cls-&gt;data()-&gt;protocols != newprotos) &#123;</span><br><span class="line">            _free_internal(cls-&gt;data()-&gt;protocols);</span><br><span class="line">        &#125;</span><br><span class="line">        cls-&gt;data()-&gt;protocols = newprotos;</span><br><span class="line"></span><br><span class="line">        _free_internal(cats);</span><br><span class="line"></span><br><span class="line">        // Update method caches and vtables</span><br><span class="line">        flushCaches(cls);</span><br><span class="line">        <span class="keyword">if</span> (vtableAffected) flushVtables(cls);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>而对于添加类的实例方法而言，又会去调用attachCategoryMethods这个方法，我们去看下attachCategoryMethods：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">static void attachCategoryMethods(class_t *cls, category_list *cats,</span><br><span class="line">BOOL *inoutVtablesAffected)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (!cats) <span class="built_in">return</span>;</span><br><span class="line">    <span class="keyword">if</span> (PrintReplacedMethods) <span class="built_in">print</span>Replacements(cls, cats);</span><br><span class="line"></span><br><span class="line">    BOOL isMeta = isMetaClass(cls);</span><br><span class="line">    method_list_t **mlists = (method_list_t **)</span><br><span class="line">    _malloc_internal(cats-&gt;count * sizeof(*mlists));</span><br><span class="line"></span><br><span class="line">    // Count backwards through cats to get newest categories first</span><br><span class="line">    int mcount = 0;</span><br><span class="line">    int i = cats-&gt;count;</span><br><span class="line">    BOOL fromBundle = NO;</span><br><span class="line">    <span class="keyword">while</span> (i--) &#123;</span><br><span class="line">        method_list_t *mlist = cat_method_list(cats-&gt;list[i].cat, isMeta);</span><br><span class="line">        <span class="keyword">if</span> (mlist) &#123;</span><br><span class="line">            mlists[mcount++] = mlist;</span><br><span class="line">            fromBundle |= cats-&gt;list[i].fromBundle;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    attachMethodLists(cls, mlists, mcount, NO, fromBundle, inoutVtablesAffected);</span><br><span class="line"></span><br><span class="line">    _free_internal(mlists);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>attachCategoryMethods做的工作相对比较简单，它只是把所有category的实例方法列表拼成了一个大的实例方法列表，然后转交给了attachMethodLists方法（我发誓，这是本节我们看的最后一段代码了^_^），这个方法有点长，我们只看一小段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (uint32_t m = 0; (scanForCustomRR || scanForCustomAWZ)  &amp;&amp;  m &lt; mlist-&gt;count;</span><br><span class="line">m++)</span><br><span class="line">&#123;</span><br><span class="line">    SEL sel = method_list_nth(mlist, m)-&gt;name;</span><br><span class="line">    <span class="keyword">if</span> (scanForCustomRR  &amp;&amp;  isRRSelector(sel)) &#123;</span><br><span class="line">        cls-&gt;<span class="built_in">set</span>HasCustomRR();</span><br><span class="line">        scanForCustomRR = <span class="literal">false</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (scanForCustomAWZ  &amp;&amp;  isAWZSelector(sel)) &#123;</span><br><span class="line">        cls-&gt;<span class="built_in">set</span>HasCustomAWZ();</span><br><span class="line">        scanForCustomAWZ = <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Fill method list array</span><br><span class="line">newLists[newCount++] = mlist;</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line"></span><br><span class="line">// Copy old methods to the method list array</span><br><span class="line"><span class="keyword">for</span> (i = 0; i &lt; oldCount; i++) &#123;</span><br><span class="line">    newLists[newCount++] = oldLists[i];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>需要注意的有两点：<br>1.category的方法没有“完全替换掉”原来类已经有的方法，也就是说如果category和原来类都有methodA，那么category附加完成之后，类的方法列表里会有两个methodA<br>2.category的方法被放到了新方法列表的前面，而原来类的方法被放到了新方法列表的后面，这也就是我们平常所说的category的方法会“覆盖”掉原来类的同名方法，这是因为运行时在查找方法的时候是顺着方法列表的顺序查找的，它只要一找到对应名字的方法，就会罢休^_^，殊不知后面可能还有一样名字的方法。</p>
-<h1 id="5、旁枝末叶-category和-load方法"><a href="#5、旁枝末叶-category和-load方法" class="headerlink" title="5、旁枝末叶-category和+load方法"></a>5、旁枝末叶-category和+load方法</h1><p>我们知道，在类和category中都可以有+load方法，那么有两个问题：<br>1.在类的+load方法调用的时候，我们可以调用category中声明的方法么？<br>2.这么些个+load方法，调用顺序是咋样的呢？<br>鉴于上述几节我们看的代码太多了，对于这两个问题我们先来看一点直观的：</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/1778459-cb9f4cde565f2352.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>我们的代码里有MyClass和MyClass的两个category （Category1和Category2），MyClass和两个category都添加了+load方法，并且Category1和Category2都写了MyClass的printName方法。<br>在Xcode中点击Edit Scheme，添加如下两个环境变量（可以在执行load方法以及加载category的时候打印log信息，更多的环境变量选项可参见objc-private.h）:</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/1778459-baa53da0713b4072.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>运行项目，我们会看到控制台打印很多东西出来，我们只找到我们想要的信息，顺序如下：</p>
-<p>objc[1187]: REPLACED: -[MyClass printName] by category Category1<br>objc[1187]: REPLACED: -[MyClass printName] by category Category2<br>.<br>.<br>.<br>objc[1187]: LOAD: class ‘MyClass’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category1)’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category2)’ scheduled for +load<br>objc[1187]: LOAD: +[MyClass load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category1) load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category2) load]</p>
-<p>所以，对于上面两个问题，答案是很明显的：<br>1.可以调用，因为附加category到类的工作会先于+load方法的执行<br>2.+load的执行顺序是先类，后category，而category的+load执行顺序是根据编译顺序决定的。<br>目前的编译顺序是这样的：</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/1778459-91824aa66416ee44.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>我们调整一个Category1和Category2的编译顺序，run。ok，我们可以看到控制台的输出顺序变了：</p>
-<p><img src="http://upload-images.jianshu.io/upload_images/1778459-34411c1979275b04.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
-<p>objc[1187]: REPLACED: -[MyClass printName] by category Category2<br>objc[1187]: REPLACED: -[MyClass printName] by category Category1<br>.<br>.<br>.<br>objc[1187]: LOAD: class ‘MyClass’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category2)’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category1)’ scheduled for +load<br>objc[1187]: LOAD: +[MyClass load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category2) load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category1) load]</p>
-<p>虽然对于+load的执行顺序是这样，但是对于“覆盖”掉的方法，则会先找到最后一个编译的category里的对应方法。<br>这一节我们只是用很直观的方式得到了问题的答案，有兴趣的同学可以继续去研究一下OC的运行时代码。</p>
-<h1 id="6、触类旁通-category和方法覆盖"><a href="#6、触类旁通-category和方法覆盖" class="headerlink" title="6、触类旁通-category和方法覆盖"></a>6、触类旁通-category和方法覆盖</h1><p>鉴于上面几节我们已经把原理都讲了，这一节只有一个问题:<br>怎么调用到原来类中被category覆盖掉的方法？<br>对于这个问题，我们已经知道category其实并不是完全替换掉原来类的同名方法，只是category在方法列表的前面而已，所以我们只要顺着方法列表找到最后一个对应名字的方法，就可以调用原来类的方法：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Class currentClass = [MyClass class];</span><br><span class="line">MyClass *my = [[MyClass alloc] init];</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (currentClass) &#123;</span><br><span class="line">    unsigned int methodCount;</span><br><span class="line">    Method *methodList = class_copyMethodList(currentClass, &amp;methodCount);</span><br><span class="line">    IMP lastImp = NULL;</span><br><span class="line">    SEL lastSel = NULL;</span><br><span class="line">    <span class="keyword">for</span> (NSInteger i = 0; i &lt; methodCount; i++) &#123;</span><br><span class="line">        Method method = methodList[i];</span><br><span class="line">        NSString *methodName = [NSString stringWithCString:sel_getName(method_getName(method)) </span><br><span class="line">encoding:NSUTF8StringEncoding];</span><br><span class="line">        <span class="keyword">if</span> ([@<span class="string">"printName"</span> isEqualToString:methodName]) &#123;</span><br><span class="line">            lastImp = method_getImplementation(method);</span><br><span class="line">            lastSel = method_getName(method);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    typedef void (*fn)(id,SEL);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lastImp != NULL) &#123;</span><br><span class="line">        fn f = (fn)lastImp;</span><br><span class="line">        f(my,lastSel);</span><br><span class="line">    &#125;</span><br><span class="line">    free(methodList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h1 id="7、更上一层-category和关联对象"><a href="#7、更上一层-category和关联对象" class="headerlink" title="7、更上一层-category和关联对象"></a>7、更上一层-category和关联对象</h1><p>如上所见，我们知道在category里面是无法为category添加实例变量的。但是我们很多时候需要在category中添加和对象关联的值，这个时候可以求助关联对象来实现。</p>
-<p>MyClass+Category1.h:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import "MyClass.h"</span></span><br><span class="line"></span><br><span class="line">@interface MyClass (Category1)</span><br><span class="line"></span><br><span class="line">@property(nonatomic,copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
-<p>MyClass+Category1.m:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import "MyClass+Category1.h"</span></span><br><span class="line"><span class="comment">#import &lt;objc/runtime.h&gt;</span></span><br><span class="line"></span><br><span class="line">@implementation MyClass (Category1)</span><br><span class="line"></span><br><span class="line">+ (void)load</span><br><span class="line">&#123;</span><br><span class="line">    NSLog(@<span class="string">"%@"</span>,@<span class="string">"load in Category1"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">set</span>Name:(NSString *)name</span><br><span class="line">&#123;</span><br><span class="line">    objc_<span class="built_in">set</span>AssociatedObject(self,</span><br><span class="line">    <span class="string">"name"</span>,</span><br><span class="line">    name,</span><br><span class="line">    OBJC_ASSOCIATION_COPY);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSString*)name</span><br><span class="line">&#123;</span><br><span class="line">    NSString *nameObject = objc_getAssociatedObject(self, <span class="string">"name"</span>);</span><br><span class="line">    <span class="built_in">return</span> nameObject;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
-<p>但是关联对象又是存在什么地方呢？ 如何存储？ 对象销毁时候如何处理关联对象呢？<br>我们去翻一下runtime的源码，在objc-references.mm文件中有个方法_object_set_associative_reference：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">void _object_<span class="built_in">set</span>_associative_reference(id object, void *key, id value, uintptr_t policy) &#123;</span><br><span class="line">    // retain the new value (<span class="keyword">if</span> any) outside the lock.</span><br><span class="line">    ObjcAssociation old_association(0, nil);</span><br><span class="line">    id new_value = value ? acquireValue(value, policy) : nil;</span><br><span class="line">    &#123;</span><br><span class="line">        AssociationsManager manager;</span><br><span class="line">        AssociationsHashMap &amp;associations(manager.associations());</span><br><span class="line">        disguised_ptr_t disguised_object = DISGUISE(object);</span><br><span class="line">        <span class="keyword">if</span> (new_value) &#123;</span><br><span class="line">            // <span class="built_in">break</span> any existing association.</span><br><span class="line">            AssociationsHashMap::iterator i = associations.find(disguised_object);</span><br><span class="line">            <span class="keyword">if</span> (i != associations.end()) &#123;</span><br><span class="line">                // secondary table exists</span><br><span class="line">                ObjectAssociationMap *refs = i-&gt;second;</span><br><span class="line">                ObjectAssociationMap::iterator j = refs-&gt;find(key);</span><br><span class="line">                <span class="keyword">if</span> (j != refs-&gt;end()) &#123;</span><br><span class="line">                    old_association = j-&gt;second;</span><br><span class="line">                    j-&gt;second = ObjcAssociation(policy, new_value);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    (*refs)[key] = ObjcAssociation(policy, new_value);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                // create the new association (first time).</span><br><span class="line">                ObjectAssociationMap *refs = new ObjectAssociationMap;</span><br><span class="line">                associations[disguised_object] = refs;</span><br><span class="line">                (*refs)[key] = ObjcAssociation(policy, new_value);</span><br><span class="line">                _class_<span class="built_in">set</span>InstancesHaveAssociatedObjects(_object_getClass(object));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            // setting the association to nil breaks the association.</span><br><span class="line">            AssociationsHashMap::iterator i = associations.find(disguised_object);</span><br><span class="line">            <span class="keyword">if</span> (i !=  associations.end()) &#123;</span><br><span class="line">                ObjectAssociationMap *refs = i-&gt;second;</span><br><span class="line">                ObjectAssociationMap::iterator j = refs-&gt;find(key);</span><br><span class="line">                <span class="keyword">if</span> (j != refs-&gt;end()) &#123;</span><br><span class="line">                    old_association = j-&gt;second;</span><br><span class="line">                    refs-&gt;erase(j);</span><br><span class="line">                &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">// release the old value (outside of the lock).</span><br><span class="line"><span class="keyword">if</span> (old_association.hasValue()) ReleaseValue()(old_association);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>我们可以看到所有的关联对象都由AssociationsManager管理，而AssociationsManager定义如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class AssociationsManager &#123;</span><br><span class="line">    static OSSpinLock _lock;</span><br><span class="line">    static AssociationsHashMap *_map;               // associative references:  object pointer -&gt;       PtrPtrHashMap.</span><br><span class="line">public:</span><br><span class="line">    <span class="function"><span class="title">AssociationsManager</span></span>()   &#123; OSSpinLockLock(&amp;_lock); &#125;</span><br><span class="line">    ~<span class="function"><span class="title">AssociationsManager</span></span>()  &#123; OSSpinLockUnlock(&amp;_lock); &#125;</span><br><span class="line"></span><br><span class="line">    AssociationsHashMap &amp;<span class="function"><span class="title">associations</span></span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> (_map == NULL)</span><br><span class="line">            _map = new AssociationsHashMap();</span><br><span class="line">            <span class="built_in">return</span> *_map;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>AssociationsManager里面是由一个静态AssociationsHashMap来存储所有的关联对象的。这相当于把所有对象的关联对象都存在一个全局map里面。而map的的key是这个对象的指针地址（任意两个不同对象的指针地址一定是不同的），而这个map的value又是另外一个AssociationsHashMap，里面保存了关联对象的kv对。<br>而在对象的销毁逻辑里面，见objc-runtime-new.mm:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">void *objc_destructInstance(id obj) </span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (obj) &#123;</span><br><span class="line">        Class isa_gen = _object_getClass(obj);</span><br><span class="line">        class_t *isa = newcls(isa_gen);</span><br><span class="line"></span><br><span class="line">        // Read all of the flags at once <span class="keyword">for</span> performance.</span><br><span class="line">        bool cxx = hasCxxStructors(isa);</span><br><span class="line">        bool assoc = !UseGC &amp;&amp; _class_instancesHaveAssociatedObjects(isa_gen);</span><br><span class="line"></span><br><span class="line">        // This order is important.</span><br><span class="line">        <span class="keyword">if</span> (cxx) object_cxxDestruct(obj);</span><br><span class="line">        <span class="keyword">if</span> (assoc) _object_remove_assocations(obj);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!UseGC) objc_clear_deallocating(obj);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">return</span> obj;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>嗯，runtime的销毁对象函数objc_destructInstance里面会判断这个对象有没有关联对象，如果有，会调用_object_remove_assocations做关联对象的清理工作。</p>
-<p>#后记<br>正如侯捷先生所讲-“源码面前，了无秘密”，Apple的Cocoa Touch框架虽然并不开源，但是Objective-C的runtime和Core Foundation却是完全开放源码的(在<a href="http://www.opensource.apple.com/tarballs/" target="_blank" rel="external">http://www.opensource.apple.com/tarballs/可以下载到全部的开源代码</a>)。<br>本系列runtime源码学习将会持续更新，意犹未尽的同学可以自行到上述网站下载源码学习。行笔简陋，如有错误，望指正。</p>
-<p>本文转自<a href="http://tech.meituan.com/DiveIntoCategory.html" target="_blank" rel="external">深入理解Objective-C：Category</a></p>
-
-          
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
                 <a class="post-title-link" href="/2016/05/10/TCP协议/" itemprop="url">
                   TCP协议
                 </a>
@@ -902,8 +537,8 @@
             
               
                 
-                <a class="post-title-link" href="/2015/05/10/Objective-C运行时原理（一）：类和对象/" itemprop="url">
-                  Objective-C运行时原理（一）：类和对象
+                <a class="post-title-link" href="/2016/05/08/Objective-C运行时原理（三）：消息和消息转发/" itemprop="url">
+                  Objective-C运行时原理（三）：消息和消息转发
                 </a>
               
             
@@ -916,8 +551,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-05-10T14:24:08+08:00" content="2015-05-10">
-              2015-05-10
+            <time itemprop="dateCreated" datetime="2016-05-08T17:09:12+08:00" content="2016-05-08">
+              2016-05-08
             </time>
           </span>
 
@@ -946,8 +581,373 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2015/05/10/Objective-C运行时原理（一）：类和对象/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/05/10/Objective-C运行时原理（一）：类和对象/" itemprop="commentsCount"></span>
+                <a href="/2016/05/08/Objective-C运行时原理（三）：消息和消息转发/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/08/Objective-C运行时原理（三）：消息和消息转发/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <blockquote>
+<p>[receiver message];</p>
+</blockquote>
+<p>objective-c的这种有趣的语法被苹果称为“发消息”。与其他面向对象语言(C++/Java)的“方法调用”不同，objc的消息机制是由运行时实现、非常灵活动态。这篇文章简单记录一下objc运行时对于消息发送和转发的实现。</p>
+<h1 id="1-编译器的转换"><a href="#1-编译器的转换" class="headerlink" title="1.编译器的转换"></a>1.编译器的转换</h1><pre><code>[receiver message];
+</code></pre><p>这一句的含义是：向receiver发送名为message的消息。</p>
+<blockquote>
+<p>clang -rewrite-objc MyClass.m</p>
+</blockquote>
+<p>执行上面的命令，将这一句重写为C代码，是这样的：</p>
+<pre><code>((void (*)(id, SEL))(void *)objc_msgSend)((id)receiver, sel_registerName(&quot;message&quot;));
+</code></pre><p>去掉那些强制转换，最终[receiver message]会由编译器转化为以下的纯C调用。</p>
+<pre><code>objc_msgSend(receiver, @selector(message));
+</code></pre><p>所以说，objc发送消息，最终大都会转换为objc_msgSend的方法调用。</p>
+<p>苹果在文档里是这么写的：</p>
+<pre><code>id objc_msgSend(id self, SEL _cmd, ...)
+</code></pre><p>将一个消息发送给一个对象，并且返回一个值。</p>
+<p>其中，self是消息的接受者，_cmd是selector， …是可变参数列表。</p>
+<p>当向一般对象发送消息时，调用<code>objc_msgSend；</code>当向super发送消息时，调用的是<code>objc_msgSendSuper；</code> 如果返回值是一个结构体，则会调用<code>objc_msgSend_stret</code>或<code>objc_msgSendSuper_stret</code>。</p>
+<h1 id="2-运行时定义的数据结构"><a href="#2-运行时定义的数据结构" class="headerlink" title="2.运行时定义的数据结构"></a>2.运行时定义的数据结构</h1><p>为了了解objc_msgSend方法做了什么，这里需要查看一下objc runtime的<a href="http://www.opensource.apple.com/tarballs/objc4/" target="_blank" rel="external">源码</a>。</p>
+<p>首先 runtime定义了如下的数据类型：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">typedef struct objc_class *Class;</span><br><span class="line">typedef struct objc_object *id;</span><br><span class="line">struct objc_object &#123;</span><br><span class="line">    Class isa;</span><br><span class="line">&#125;;</span><br><span class="line">struct objc_class &#123;</span><br><span class="line">    Class isa;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">/// 不透明结构体, selector</span><br><span class="line">typedef struct objc_selector *SEL;</span><br><span class="line"></span><br><span class="line">/// 函数指针, 用于表示对象方法的实现</span><br><span class="line">typedef id (*IMP)(id, SEL, ...);</span><br></pre></td></tr></table></figure></p>
+<p><code>id</code>指代objc中的对象，每个对象的在内存的结构并不是确定的，但其首地址指向的肯定是isa。通过isa指针，运行时就能获取到<code>objc_class</code>。</p>
+<p><code>objc_class</code>表示对象的Class，它的结构是确定的，由编译器生成。</p>
+<p>SEL表示选择器，这是一个不透明结构体。但是实际上，通常可以把它理解为一个字符串。例如<code>printf(&quot;%s&quot;,@selector(isEqual:))</code>会打印出”isEqual:”。运行时维护着一张SEL的表，将相同字符串的方法名映射到唯一一个SEL。  通过<code>sel_registerName(char *name)</code>方法，可以查找到这张表中方法名对应的SEL。苹果提供了一个语法糖<code>@selector</code>用来方便地调用该函数。</p>
+<p>IMP是一个函数指针。objc中的方法最终会被转换成纯C的函数，IMP就是为了表示这些函数的地址。</p>
+<p>了解了这些基础的类型定义后，clang翻译的代码就能看懂了：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">///objc代码</span><br><span class="line">@implementation NyanCat</span><br><span class="line">+ (void)nyan &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p"</span>,self, _cmd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (int) <span class="built_in">set</span>Object:(id)obj <span class="keyword">for</span>Key:(id)key &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p %p %p"</span>,self, _cmd, obj, key);</span><br><span class="line">    <span class="built_in">return</span> 0;</span><br><span class="line">&#125;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">///c翻译的版本</span><br><span class="line">static void _C_NyanCat_nyan(Class self, SEL _cmd) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p"</span>,self, _cmd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">static int _I_NyanCat_<span class="built_in">set</span>Object_<span class="keyword">for</span>Key_(NyanCat * self, SEL _cmd, id obj, id key) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p %p %p"</span>,self, _cmd, obj, key);</span><br><span class="line">    <span class="built_in">return</span> 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里就可以看出来了，实际上消息发送，最终会转换成调用C函数。<code>obj_msgSend</code>的实际动作就是：找到这个函数指针，然后调用它。</p>
+<p>#3.obj_msgSend的动作<br>为了加快速度，苹果对这个方法做了很多优化，这个方法是用汇编实现的。我汇编渣渣。。所以这里稍微整理一下，用伪代码表示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">id objc_msgSend(id self, SEL op, ...) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!self) <span class="built_in">return</span> nil;</span><br><span class="line">    IMP imp = class_getMethodImplementation(self-&gt;isa, SEL op);</span><br><span class="line">    imp(self, op, ...); //调用这个函数，伪代码...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//查找IMP</span><br><span class="line">IMP class_getMethodImplementation(Class cls, SEL sel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cls || !sel) <span class="built_in">return</span> nil;</span><br><span class="line">    IMP imp = lookUpImpOrNil(cls, sel);</span><br><span class="line">    <span class="keyword">if</span> (!imp) <span class="built_in">return</span> _objc_msgForward; //这个是用于消息转发的</span><br><span class="line">    <span class="built_in">return</span> imp;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">IMP lookUpImpOrNil(Class cls, SEL sel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cls-&gt;initialize()) &#123;</span><br><span class="line">        _class_initialize(cls);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Class curClass = cls;</span><br><span class="line">    IMP imp = nil;</span><br><span class="line">    <span class="keyword">do</span> &#123; //先查缓存,缓存没有时重建,仍旧没有则向父类查询</span><br><span class="line">        <span class="keyword">if</span> (!curClass) <span class="built_in">break</span>;</span><br><span class="line">        <span class="keyword">if</span> (!curClass-&gt;cache) fill_cache(cls, curClass);</span><br><span class="line">        imp = cache_getImp(curClass, sel);</span><br><span class="line">        <span class="keyword">if</span> (imp) <span class="built_in">break</span>;</span><br><span class="line">    &#125; <span class="keyword">while</span> (curClass = curClass-&gt;superclass);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">return</span> imp;</span><br><span class="line">&#125;</span><br><span class="line">`objc_msgSend`的动作比较清晰：首先在Class中的缓存查找imp（没缓存则初始化缓存），如果没找到，则向父类的Class查找。如果一直查找到根类仍旧没有实现，则用`_objc_msgForward`函数指针代替imp。最后，执行这个imp。</span><br><span class="line"></span><br><span class="line">`_objc_msgForward`是用于消息转发的。这个函数的实现并没有在objc-runtime的开源代码里面，而是在Foundation框架里面实现的。加上断点启动程序后，会发现__CFInitialize这个方法会调用objc_<span class="built_in">set</span>ForwardHandler函数来注册一个实现。</span><br><span class="line"><span class="comment"># 4.消息转发</span></span><br><span class="line">上面可以知道，当向一个对象发送一条消息，但它并没有实现的时候，_objc_msgForward会尝试做消息转发。为了展示消息转发的具体动作，这里尝试向一个对象发送一条错误的消息，并查看一下_objc_msgForward是如何进行转发的。</span><br><span class="line"></span><br><span class="line">首先开启调试模式、打印出所有运行时发送的消息：</span><br><span class="line">可以在代码里执行下面的方法：</span><br><span class="line">``` bash</span><br><span class="line">(void)instrumentObjcMessageSends(YES);</span><br></pre></td></tr></table></figure></p>
+<p>或者暂停程序运行，并在gdb中输入下面的命令：</p>
+<blockquote>
+<p>call (void)instrumentObjcMessageSends(YES)<br>之后，运行时发送的所有消息都会打印到/tmp/msgSend-xxxx文件里了。</p>
+</blockquote>
+<p>这里执行以下语句，向一个对象发送一条错误的消息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Test *<span class="built_in">test</span> = [Test new];</span><br><span class="line">[<span class="built_in">test</span> performSelector(@selector(xxx))];</span><br></pre></td></tr></table></figure></p>
+<p>打印出来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">+ Test NSObject initialize</span><br><span class="line">+ Test NSObject new</span><br><span class="line">+ Test NSObject alloc</span><br><span class="line">+ Test NSObject allocWithZone:</span><br><span class="line">- Test NSObject init</span><br><span class="line">- Test NSObject performSelector:</span><br><span class="line">+ Test NSObject resolveInstanceMethod:</span><br><span class="line">- Test NSObject forwardingTargetForSelector:</span><br><span class="line">- Test NSObject methodSignatureForSelector:</span><br><span class="line">- Test NSObject class</span><br><span class="line">- Test NSObject doesNotRecognizeSelector:</span><br></pre></td></tr></table></figure></p>
+<p>结合NSObject文档可以知道，<code>_objc_msgForward</code>消息转发做了如下几件事：</p>
+<ol>
+<li>调用resolveInstanceMethod:方法，允许用户在此时为该Class动态添加实现。如果有实现了，则调用并返回。如果仍没实现，继续下面的动作。</li>
+<li>调用forwardingTargetForSelector:方法，尝试找到一个能响应该消息的对象。如果获取到，则直接转发给它。如果返回了nil，继续下面的动作。</li>
+<li>调用methodSignatureForSelector:方法，尝试获得一个方法签名。如果获取不到，则直接调用doesNotRecognizeSelector抛出异常。</li>
+<li>调用forwardInvocation:方法，将地3步获取到的方法签名包装成Invocation传入，如何处理就在这里面了。</li>
+</ol>
+<p>上面这4个方法均是模板方法，开发者可以override，由runtime来调用。最常见的实现消息转发，就是重写方法3和4，吞掉一个消息或者代理给其他对象都是没问题的。</p>
+<h1 id="5-其他注意事项"><a href="#5-其他注意事项" class="headerlink" title="5.其他注意事项"></a>5.其他注意事项</h1><p>由上面介绍可以知道，一个objc程序启动后，需要进行类的初始化、调用方法时的cache初始化，所以会有一段”热身”的时间。之后，再发送消息的时候就直接走缓存了，所以消息发送的效率非常高，且没有牺牲动态特性。</p>
+<p>如果希望避免方法查找带来的那一<a href="http://vagase.me/blog/dig-objc-msgsend/" target="_blank" rel="external">丁点</a>开销，可以用<code>methodForSelector</code> 手动获得IMP来直接调用。用 <code>methodForSelector</code> 获取IMP时，会尝试forward机制， 所以在没有对应方法时，返回的是 <code>_objc_msgForward</code> ，不会返回NULL。</p>
+<p>用 <code>respondsToSelector</code> 判断对象是否能响应消息时, 会避开forward机制 ，但是该方法会尝试一次<code>resolveInstanceMethod</code>。</p>
+<p>PS: stackoverflow上有两个不错的文章：<a href="http://stackoverflow.com/questions/15178395/how-does-forwardinvocation-get-called" target="_blank" rel="external">1</a>  <a href="http://stackoverflow.com/questions/4574465/objective-c-respondstoselector-question" target="_blank" rel="external">2</a><br>本文转自<a href="http://blog.ibireme.com/2013/11/26/objective-c-messaging/" target="_blank" rel="external">Objective-C 中的消息与消息转发</a>。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/05/08/Objective-C运行时原理（二）：Category/" itemprop="url">
+                  Objective-C运行时原理（二）：Category
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-05-08T16:39:23+08:00" content="2016-05-08">
+              2016-05-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Objective-C/" itemprop="url" rel="index">
+                    <span itemprop="name">Objective-C</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/05/08/Objective-C运行时原理（二）：Category/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/08/Objective-C运行时原理（二）：Category/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h1><p>无论一个类设计的多么完美，在未来的需求演进中，都有可能会碰到一些无法预测的情况。那怎么扩展已有的类呢？一般而言，继承和组合是不错的选择。但是在Objective-C 2.0中，又提供了category这个语言特性，可以动态地为已有类添加新行为。如今category已经遍布于Objective-C代码的各个角落，从Apple官方的framework到各个开源框架，从功能繁复的大型APP到简单的应用，catagory无处不在。本文对category做了比较全面的整理，希望对读者有所裨益。</p>
+<h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>本文作者来自美团酒店旅游事业群iOS研发组。我们致力于创造价值、提升效率、追求卓越。欢迎大家加入我们（简历请发送到邮箱majia03@meituan.com）。<br>本文系学习Objective-C的runtime源码时整理所成，主要剖析了category在runtime层的实现原理以及和category相关的方方面面，内容包括：</p>
+<ul>
+<li>初入宝地-category简介</li>
+<li>连类比事-category和extension</li>
+<li>挑灯细览-category真面目</li>
+<li>追本溯源-category如何加载</li>
+<li>旁枝末叶-category和+load方法</li>
+<li>触类旁通-category和方法覆盖</li>
+<li>更上一层-category和关联对象</li>
+</ul>
+<h1 id="1、初入宝地-category简介"><a href="#1、初入宝地-category简介" class="headerlink" title="1、初入宝地-category简介"></a>1、初入宝地-category简介</h1><p>category是Objective-C 2.0之后添加的语言特性，category的主要作用是为已经存在的类添加方法。除此之外，apple还推荐了category的另外两个使用场景<a href="https://developer.apple.com/library/ios/documentation/General/Conceptual/DevPedia-CocoaCore/Category.html" target="_blank" rel="external">1</a></p>
+<ul>
+<li>可以把类的实现分开在几个不同的文件里面。这样做有几个显而易见的好处，a)可以减少单个文件的体积 b)可以把不同的功能组织到不同的category里 c)可以由多个开发者共同完成一个类 d)可以按需加载想要的category 等等。</li>
+<li>声明私有方法</li>
+</ul>
+<p>不过除了apple推荐的使用场景，广大开发者脑洞大开，还衍生出了category的其他几个使用场景：</p>
+<ul>
+<li>模拟多继承</li>
+<li>把framework的私有方法公开<br>Objective-C的这个语言特性对于纯动态语言来说可能不算什么，比如javascript，你可以随时为一个“类”或者对象添加任意方法和实例变量。但是对于不是那么“动态”的语言而言，这确实是一个了不起的特性。</li>
+</ul>
+<h1 id="2、连类比事-category和extension"><a href="#2、连类比事-category和extension" class="headerlink" title="2、连类比事-category和extension"></a>2、连类比事-category和extension</h1><p>extension看起来很像一个匿名的category，但是extension和有名字的category几乎完全是两个东西。 extension在编译期决议，它就是类的一部分，在编译期和头文件里的@interface以及实现文件里的@implement一起形成一个完整的类，它伴随类的产生而产生，亦随之一起消亡。extension一般用来隐藏类的私有信息，你必须有一个类的源码才能为一个类添加extension，所以你无法为系统的类比如NSString添加extension。（详见<a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/CustomizingExistingClasses/CustomizingExistingClasses.html" target="_blank" rel="external">2</a>）</p>
+<p>但是category则完全不一样，它是在运行期决议的。<br>就category和extension的区别来看，我们可以推导出一个明显的事实，extension可以添加实例变量，而category是无法添加实例变量的（因为在运行期，对象的内存布局已经确定，如果添加实例变量就会破坏类的内部布局，这对编译型语言来说是灾难性的）。</p>
+<h1 id="3、挑灯细览-category真面目"><a href="#3、挑灯细览-category真面目" class="headerlink" title="3、挑灯细览-category真面目"></a>3、挑灯细览-category真面目</h1><p>我们知道，所有的OC类和对象，在runtime层都是用struct表示的，category也不例外，在runtime层，category用结构体category_t（在objc-runtime-new.h中可以找到此定义），它包含了</p>
+<ol>
+<li>类的名字（name）</li>
+<li>类（cls）</li>
+<li>category中所有给类添加的实例方法的列表（instanceMethods）</li>
+<li>category中所有添加的类方法的列表（classMethods）</li>
+<li>category实现的所有协议的列表（protocols）</li>
+<li>category中添加的所有属性（instanceProperties）</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">typedef struct category_t &#123;</span><br><span class="line">    const char *name;</span><br><span class="line">    classref_t cls;</span><br><span class="line">    struct method_list_t *instanceMethods;</span><br><span class="line">    struct method_list_t *classMethods;</span><br><span class="line">    struct protocol_list_t *protocols;</span><br><span class="line">    struct property_list_t *instanceProperties;</span><br><span class="line">&#125; category_t;</span><br></pre></td></tr></table></figure>
+<p>从category的定义也可以看出category的可为（可以添加实例方法，类方法，甚至可以实现协议，添加属性）和不可为（无法添加实例变量）。<br>ok，我们先去写一个category看一下category到底为何物：</p>
+<p>MyClass.h：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import &lt;Foundation/Foundation.h&gt;</span></span><br><span class="line"></span><br><span class="line">@interface MyClass : NSObject</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@interface MyClass(MyAddition)</span><br><span class="line"></span><br><span class="line">@property(nonatomic, copy) NSString *name;</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
+<p>MyClass.m：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import "MyClass.h"</span></span><br><span class="line"></span><br><span class="line">@implementation MyClass</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name</span><br><span class="line">&#123;</span><br><span class="line">    NSLog(@<span class="string">"%@"</span>,@<span class="string">"MyClass"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation MyClass(MyAddition)</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">print</span>Name</span><br><span class="line">&#123;</span><br><span class="line">    NSLog(@<span class="string">"%@"</span>,@<span class="string">"MyAddition"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
+<p>我们使用clang的命令去看看category到底会变成什么：</p>
+<blockquote>
+<p>clang -rewrite-objc MyClass.m</p>
+</blockquote>
+<p>好吧，我们得到了一个3M大小，10w多行的.cpp文件（这绝对是Apple值得吐槽的一点），我们忽略掉所有和我们无关的东西，在文件的最后，我们找到了如下代码片段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">static struct /*_method_list_t*/ &#123;</span><br><span class="line">    unsigned int entsize;  // sizeof(struct _objc_method)</span><br><span class="line">    unsigned int method_count;</span><br><span class="line">    struct _objc_method method_list[1];</span><br><span class="line">&#125; _OBJC_<span class="variable">$_CATEGORY_INSTANCE_METHODS_MyClass_</span><span class="variable">$_MyAddition</span> __attribute__ ((used, section (<span class="string">"__DATA,__objc_const"</span>))) = &#123;</span><br><span class="line">    sizeof(_objc_method),</span><br><span class="line">    1,</span><br><span class="line">    &#123;&#123;(struct objc_selector *)<span class="string">"printName"</span>, <span class="string">"v16@0:8"</span>, (void *)_I_MyClass_MyAddition_<span class="built_in">print</span>Name&#125;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">static struct /*_prop_list_t*/ &#123;</span><br><span class="line">    unsigned int entsize;  // sizeof(struct _prop_t)</span><br><span class="line">    unsigned int count_of_properties;</span><br><span class="line">    struct _prop_t prop_list[1];</span><br><span class="line">&#125; _OBJC_<span class="variable">$_PROP_LIST_MyClass_</span><span class="variable">$_MyAddition</span> __attribute__ ((used, section     (<span class="string">"__DATA,__objc_const"</span>))) = &#123;</span><br><span class="line">    sizeof(_prop_t),</span><br><span class="line">    1,</span><br><span class="line">    &#123;&#123;<span class="string">"name"</span>,<span class="string">"T@\"NSString\",C,N"</span>&#125;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">extern <span class="string">"C"</span> __declspec(dllexport) struct _class_t OBJC_CLASS_<span class="variable">$_MyClass</span>;</span><br><span class="line"></span><br><span class="line">static struct _category_t _OBJC_<span class="variable">$_CATEGORY_MyClass_</span><span class="variable">$_MyAddition</span> __attribute__ ((used, section (<span class="string">"__DATA,__objc_const"</span>))) =</span><br><span class="line">&#123;</span><br><span class="line">    <span class="string">"MyClass"</span>,</span><br><span class="line">    0, // &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>,</span><br><span class="line">    (const struct _method_list_t *)&amp;_OBJC_<span class="variable">$_CATEGORY_INSTANCE_METHODS_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">    0,</span><br><span class="line">    0,</span><br><span class="line">    (const struct _prop_list_t *)&amp;_OBJC_<span class="variable">$_PROP_LIST_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static void OBJC_CATEGORY_SETUP_<span class="variable">$_MyClass_</span><span class="variable">$_MyAddition</span>(void ) &#123;</span><br><span class="line">    _OBJC_<span class="variable">$_CATEGORY_MyClass_</span><span class="variable">$_MyAddition</span>.cls = &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">#pragma section(".objc_inithooks$B", long, read, write)</span></span><br><span class="line">__declspec(allocate(<span class="string">".objc_inithooks<span class="variable">$B</span>"</span>)) static void *OBJC_CATEGORY_SETUP[] = &#123;</span><br><span class="line">    (void *)&amp;OBJC_CATEGORY_SETUP_<span class="variable">$_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static struct _class_t *L_OBJC_LABEL_CLASS_$ [1] __attribute__((used, section (<span class="string">"__DATA, __objc_classlist,regular,no_dead_strip"</span>)))= &#123;</span><br><span class="line">    &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static struct _class_t *_OBJC_LABEL_NONLAZY_CLASS_$[] = &#123;</span><br><span class="line">    &amp;OBJC_CLASS_<span class="variable">$_MyClass</span>,</span><br><span class="line">&#125;;</span><br><span class="line">static struct _category_t *L_OBJC_LABEL_CATEGORY_$ [1] __attribute__((used, section (<span class="string">"__DATA, __objc_catlist,regular,no_dead_strip"</span>)))= &#123;</span><br><span class="line">    &amp;_OBJC_<span class="variable">$_CATEGORY_MyClass_</span><span class="variable">$_MyAddition</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到，</p>
+<ol>
+<li>首先编译器生成了实例方法列表OBJC$_CATEGORY_INSTANCE_METHODSMyClass$_MyAddition和属性列表OBJC$_PROP_LISTMyClass$_MyAddition，两者的命名都遵循了公共前缀+类名+category名字的命名方式，而且实例方法列表里面填充的正是我们在MyAddition这个category里面写的方法printName，而属性列表里面填充的也正是我们在MyAddition里添加的name属性。还有一个需要注意到的事实就是category的名字用来给各种列表以及后面的category结构体本身命名，而且有static来修饰，所以在同一个编译单元里我们的category名不能重复，否则会出现编译错误。</li>
+<li>其次，编译器生成了category本身OBJC$_CATEGORYMyClass$_MyAddition，并用前面生成的列表来初始化category本身。</li>
+<li>最后，编译器在DATA段下的objc_catlist section里保存了一个大小为1的category_t的数组L_OBJC<em>LABELCATEGORY$（当然，如果有多个category，会生成对应长度的数组^</em>^），用于运行期category的加载。<br>到这里，编译器的工作就接近尾声了，对于category在运行期怎么加载，我们下节揭晓。</li>
+</ol>
+<h1 id="4、追本溯源-category如何加载"><a href="#4、追本溯源-category如何加载" class="headerlink" title="4、追本溯源-category如何加载"></a>4、追本溯源-category如何加载</h1><p>我们知道，Objective-C的运行是依赖OC的runtime的，而OC的runtime和其他系统库一样，是OS X和iOS通过dyld动态加载的。<br>想了解更多dyld地同学可以移步这里（<a href="https://www.mikeash.com/pyblog/friday-qa-2012-11-09-dyld-dynamic-linking-on-os-x.html" target="_blank" rel="external">3</a>）。</p>
+<p>对于OC运行时，入口方法如下（在objc-os.mm文件中）：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">void _objc_init(void)</span><br><span class="line">&#123;</span><br><span class="line">    static bool initialized = <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">if</span> (initialized) <span class="built_in">return</span>;</span><br><span class="line">    initialized = <span class="literal">true</span>;</span><br><span class="line"></span><br><span class="line">    // fixme defer initialization until an objc-using image is found?</span><br><span class="line">    environ_init();</span><br><span class="line">    tls_init();</span><br><span class="line">    lock_init();</span><br><span class="line">    exception_init();</span><br><span class="line"></span><br><span class="line">    // Register <span class="keyword">for</span> unmap first, <span class="keyword">in</span> <span class="keyword">case</span> some +load unmaps something</span><br><span class="line">    _dyld_register_func_<span class="keyword">for</span>_remove_image(&amp;unmap_image);</span><br><span class="line">    dyld_register_image_state_change_handler(dyld_image_state_bound,</span><br><span class="line">1/*batch*/, &amp;map_images);</span><br><span class="line">    dyld_register_image_state_change_handler(dyld_image_state_dependents_initialized, 0/*not batch*/, &amp;load_images);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>category被附加到类上面是在map_images的时候发生的，在new-ABI的标准下，_objc_init里面的调用的map_images最终会调用objc-runtime-new.mm里面的_read_images方法，而在_read_images方法的结尾，有以下的代码片段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">// Discover categories. </span><br><span class="line"><span class="keyword">for</span> (EACH_HEADER) &#123;</span><br><span class="line">    category_t **catlist = _getObjc2CategoryList(hi, &amp;count);</span><br><span class="line">    <span class="keyword">for</span> (i = 0; i &lt; count; i++) &#123;</span><br><span class="line">        category_t *cat = catlist[i];</span><br><span class="line">        class_t *cls = remapClass(cat-&gt;cls);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!cls) &#123;</span><br><span class="line">            // Category<span class="string">'s target class is missing (probably weak-linked).</span><br><span class="line">            // Disavow any knowledge of this category.</span><br><span class="line">            catlist[i] = NULL;</span><br><span class="line">            if (PrintConnecting) &#123;</span><br><span class="line">                _objc_inform("CLASS: IGNORING category \?\?\?(%s) %p with "</span><br><span class="line">                "missing weak-linked target class",</span><br><span class="line">                cat-&gt;name, cat);</span><br><span class="line">            &#125;</span><br><span class="line">        continue;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Process this category. </span><br><span class="line">        // First, register the category with its target class. </span><br><span class="line">        // Then, rebuild the class'</span>s method lists (etc) <span class="keyword">if</span> </span><br><span class="line">        // the class is realized. </span><br><span class="line">        BOOL classExists = NO;</span><br><span class="line">        <span class="keyword">if</span> (cat-&gt;instanceMethods ||  cat-&gt;protocols ||  cat-&gt;instanceProperties)</span><br><span class="line">        &#123;</span><br><span class="line">            addUnattachedCategoryForClass(cat, cls, hi);</span><br><span class="line">            <span class="keyword">if</span> (isRealized(cls)) &#123;</span><br><span class="line">                remethodizeClass(cls);</span><br><span class="line">                classExists = YES;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (PrintConnecting) &#123;</span><br><span class="line">                _objc_inform(<span class="string">"CLASS: found category -%s(%s) %s"</span>,</span><br><span class="line">                getName(cls), cat-&gt;name,</span><br><span class="line">                classExists ? <span class="string">"on existing class"</span> : <span class="string">""</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (cat-&gt;classMethods  ||  cat-&gt;protocols /* ||  cat-&gt;classProperties */)</span><br><span class="line">        &#123;</span><br><span class="line">            addUnattachedCategoryForClass(cat, cls-&gt;isa, hi);</span><br><span class="line">            <span class="keyword">if</span> (isRealized(cls-&gt;isa)) &#123;</span><br><span class="line">                remethodizeClass(cls-&gt;isa);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (PrintConnecting) &#123;</span><br><span class="line">                _objc_inform(<span class="string">"CLASS: found category +%s(%s)"</span>,</span><br><span class="line">                getName(cls), cat-&gt;name);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>首先，我们拿到的catlist就是上节中讲到的编译器为我们准备的category_t数组，关于是如何加载catlist本身的，我们暂且不表，这和category本身的关系也不大，有兴趣的同学可以去研究以下Apple的二进制格式和load机制。<br>略去PrintConnecting这个用于log的东西，这段代码很容易理解：</p>
+<ol>
+<li>把category的实例方法、协议以及属性添加到类上</li>
+<li>把category的类方法和协议添加到类的metaclass上</li>
+</ol>
+<p>值得注意的是，在代码中有一小段注释 / || cat-&gt;classProperties /，看来苹果有过给类添加属性的计划啊。<br>ok，我们接着往里看，category的各种列表是怎么最终添加到类上的，就拿实例方法列表来说吧：<br>在上述的代码片段里，addUnattachedCategoryForClass只是把类和category做一个关联映射，而remethodizeClass才是真正去处理添加事宜的功臣。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">static void remethodizeClass(class_t *cls)</span><br><span class="line">&#123;</span><br><span class="line">    category_list *cats;</span><br><span class="line">    BOOL isMeta;</span><br><span class="line"></span><br><span class="line">    rwlock_assert_writing(&amp;runtimeLock);</span><br><span class="line"></span><br><span class="line">    isMeta = isMetaClass(cls);</span><br><span class="line"></span><br><span class="line">    // Re-methodizing: check <span class="keyword">for</span> more categories</span><br><span class="line">    <span class="keyword">if</span> ((cats = unattachedCategoriesForClass(cls))) &#123;</span><br><span class="line">        chained_property_list *newproperties;</span><br><span class="line">        const protocol_list_t **newprotos;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (PrintConnecting) &#123;</span><br><span class="line">            _objc_inform(<span class="string">"CLASS: attaching categories to class '%s' %s"</span>,</span><br><span class="line">            getName(cls), isMeta ? <span class="string">"(meta)"</span> : <span class="string">""</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // Update methods, properties, protocols</span><br><span class="line"></span><br><span class="line">        BOOL vtableAffected = NO;</span><br><span class="line">        attachCategoryMethods(cls, cats, &amp;vtableAffected);</span><br><span class="line"></span><br><span class="line">        newproperties = buildPropertyList(NULL, cats, isMeta);</span><br><span class="line">        <span class="keyword">if</span> (newproperties) &#123;</span><br><span class="line">            newproperties-&gt;next = cls-&gt;data()-&gt;properties;</span><br><span class="line">            cls-&gt;data()-&gt;properties = newproperties;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        newprotos = buildProtocolList(cats, NULL, cls-&gt;data()-&gt;protocols);</span><br><span class="line">        <span class="keyword">if</span> (cls-&gt;data()-&gt;protocols  &amp;&amp;  cls-&gt;data()-&gt;protocols != newprotos) &#123;</span><br><span class="line">            _free_internal(cls-&gt;data()-&gt;protocols);</span><br><span class="line">        &#125;</span><br><span class="line">        cls-&gt;data()-&gt;protocols = newprotos;</span><br><span class="line"></span><br><span class="line">        _free_internal(cats);</span><br><span class="line"></span><br><span class="line">        // Update method caches and vtables</span><br><span class="line">        flushCaches(cls);</span><br><span class="line">        <span class="keyword">if</span> (vtableAffected) flushVtables(cls);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而对于添加类的实例方法而言，又会去调用attachCategoryMethods这个方法，我们去看下attachCategoryMethods：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">static void attachCategoryMethods(class_t *cls, category_list *cats,</span><br><span class="line">BOOL *inoutVtablesAffected)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (!cats) <span class="built_in">return</span>;</span><br><span class="line">    <span class="keyword">if</span> (PrintReplacedMethods) <span class="built_in">print</span>Replacements(cls, cats);</span><br><span class="line"></span><br><span class="line">    BOOL isMeta = isMetaClass(cls);</span><br><span class="line">    method_list_t **mlists = (method_list_t **)</span><br><span class="line">    _malloc_internal(cats-&gt;count * sizeof(*mlists));</span><br><span class="line"></span><br><span class="line">    // Count backwards through cats to get newest categories first</span><br><span class="line">    int mcount = 0;</span><br><span class="line">    int i = cats-&gt;count;</span><br><span class="line">    BOOL fromBundle = NO;</span><br><span class="line">    <span class="keyword">while</span> (i--) &#123;</span><br><span class="line">        method_list_t *mlist = cat_method_list(cats-&gt;list[i].cat, isMeta);</span><br><span class="line">        <span class="keyword">if</span> (mlist) &#123;</span><br><span class="line">            mlists[mcount++] = mlist;</span><br><span class="line">            fromBundle |= cats-&gt;list[i].fromBundle;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    attachMethodLists(cls, mlists, mcount, NO, fromBundle, inoutVtablesAffected);</span><br><span class="line"></span><br><span class="line">    _free_internal(mlists);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>attachCategoryMethods做的工作相对比较简单，它只是把所有category的实例方法列表拼成了一个大的实例方法列表，然后转交给了attachMethodLists方法（我发誓，这是本节我们看的最后一段代码了^_^），这个方法有点长，我们只看一小段：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (uint32_t m = 0; (scanForCustomRR || scanForCustomAWZ)  &amp;&amp;  m &lt; mlist-&gt;count;</span><br><span class="line">m++)</span><br><span class="line">&#123;</span><br><span class="line">    SEL sel = method_list_nth(mlist, m)-&gt;name;</span><br><span class="line">    <span class="keyword">if</span> (scanForCustomRR  &amp;&amp;  isRRSelector(sel)) &#123;</span><br><span class="line">        cls-&gt;<span class="built_in">set</span>HasCustomRR();</span><br><span class="line">        scanForCustomRR = <span class="literal">false</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (scanForCustomAWZ  &amp;&amp;  isAWZSelector(sel)) &#123;</span><br><span class="line">        cls-&gt;<span class="built_in">set</span>HasCustomAWZ();</span><br><span class="line">        scanForCustomAWZ = <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Fill method list array</span><br><span class="line">newLists[newCount++] = mlist;</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line"></span><br><span class="line">// Copy old methods to the method list array</span><br><span class="line"><span class="keyword">for</span> (i = 0; i &lt; oldCount; i++) &#123;</span><br><span class="line">    newLists[newCount++] = oldLists[i];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>需要注意的有两点：<br>1.category的方法没有“完全替换掉”原来类已经有的方法，也就是说如果category和原来类都有methodA，那么category附加完成之后，类的方法列表里会有两个methodA<br>2.category的方法被放到了新方法列表的前面，而原来类的方法被放到了新方法列表的后面，这也就是我们平常所说的category的方法会“覆盖”掉原来类的同名方法，这是因为运行时在查找方法的时候是顺着方法列表的顺序查找的，它只要一找到对应名字的方法，就会罢休^_^，殊不知后面可能还有一样名字的方法。</p>
+<h1 id="5、旁枝末叶-category和-load方法"><a href="#5、旁枝末叶-category和-load方法" class="headerlink" title="5、旁枝末叶-category和+load方法"></a>5、旁枝末叶-category和+load方法</h1><p>我们知道，在类和category中都可以有+load方法，那么有两个问题：<br>1.在类的+load方法调用的时候，我们可以调用category中声明的方法么？<br>2.这么些个+load方法，调用顺序是咋样的呢？<br>鉴于上述几节我们看的代码太多了，对于这两个问题我们先来看一点直观的：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1778459-cb9f4cde565f2352.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>我们的代码里有MyClass和MyClass的两个category （Category1和Category2），MyClass和两个category都添加了+load方法，并且Category1和Category2都写了MyClass的printName方法。<br>在Xcode中点击Edit Scheme，添加如下两个环境变量（可以在执行load方法以及加载category的时候打印log信息，更多的环境变量选项可参见objc-private.h）:</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1778459-baa53da0713b4072.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>运行项目，我们会看到控制台打印很多东西出来，我们只找到我们想要的信息，顺序如下：</p>
+<p>objc[1187]: REPLACED: -[MyClass printName] by category Category1<br>objc[1187]: REPLACED: -[MyClass printName] by category Category2<br>.<br>.<br>.<br>objc[1187]: LOAD: class ‘MyClass’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category1)’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category2)’ scheduled for +load<br>objc[1187]: LOAD: +[MyClass load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category1) load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category2) load]</p>
+<p>所以，对于上面两个问题，答案是很明显的：<br>1.可以调用，因为附加category到类的工作会先于+load方法的执行<br>2.+load的执行顺序是先类，后category，而category的+load执行顺序是根据编译顺序决定的。<br>目前的编译顺序是这样的：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1778459-91824aa66416ee44.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>我们调整一个Category1和Category2的编译顺序，run。ok，我们可以看到控制台的输出顺序变了：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/1778459-34411c1979275b04.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>objc[1187]: REPLACED: -[MyClass printName] by category Category2<br>objc[1187]: REPLACED: -[MyClass printName] by category Category1<br>.<br>.<br>.<br>objc[1187]: LOAD: class ‘MyClass’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category2)’ scheduled for +load<br>objc[1187]: LOAD: category ‘MyClass(Category1)’ scheduled for +load<br>objc[1187]: LOAD: +[MyClass load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category2) load]<br>.<br>.<br>.<br>objc[1187]: LOAD: +[MyClass(Category1) load]</p>
+<p>虽然对于+load的执行顺序是这样，但是对于“覆盖”掉的方法，则会先找到最后一个编译的category里的对应方法。<br>这一节我们只是用很直观的方式得到了问题的答案，有兴趣的同学可以继续去研究一下OC的运行时代码。</p>
+<h1 id="6、触类旁通-category和方法覆盖"><a href="#6、触类旁通-category和方法覆盖" class="headerlink" title="6、触类旁通-category和方法覆盖"></a>6、触类旁通-category和方法覆盖</h1><p>鉴于上面几节我们已经把原理都讲了，这一节只有一个问题:<br>怎么调用到原来类中被category覆盖掉的方法？<br>对于这个问题，我们已经知道category其实并不是完全替换掉原来类的同名方法，只是category在方法列表的前面而已，所以我们只要顺着方法列表找到最后一个对应名字的方法，就可以调用原来类的方法：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Class currentClass = [MyClass class];</span><br><span class="line">MyClass *my = [[MyClass alloc] init];</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (currentClass) &#123;</span><br><span class="line">    unsigned int methodCount;</span><br><span class="line">    Method *methodList = class_copyMethodList(currentClass, &amp;methodCount);</span><br><span class="line">    IMP lastImp = NULL;</span><br><span class="line">    SEL lastSel = NULL;</span><br><span class="line">    <span class="keyword">for</span> (NSInteger i = 0; i &lt; methodCount; i++) &#123;</span><br><span class="line">        Method method = methodList[i];</span><br><span class="line">        NSString *methodName = [NSString stringWithCString:sel_getName(method_getName(method)) </span><br><span class="line">encoding:NSUTF8StringEncoding];</span><br><span class="line">        <span class="keyword">if</span> ([@<span class="string">"printName"</span> isEqualToString:methodName]) &#123;</span><br><span class="line">            lastImp = method_getImplementation(method);</span><br><span class="line">            lastSel = method_getName(method);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    typedef void (*fn)(id,SEL);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lastImp != NULL) &#123;</span><br><span class="line">        fn f = (fn)lastImp;</span><br><span class="line">        f(my,lastSel);</span><br><span class="line">    &#125;</span><br><span class="line">    free(methodList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h1 id="7、更上一层-category和关联对象"><a href="#7、更上一层-category和关联对象" class="headerlink" title="7、更上一层-category和关联对象"></a>7、更上一层-category和关联对象</h1><p>如上所见，我们知道在category里面是无法为category添加实例变量的。但是我们很多时候需要在category中添加和对象关联的值，这个时候可以求助关联对象来实现。</p>
+<p>MyClass+Category1.h:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import "MyClass.h"</span></span><br><span class="line"></span><br><span class="line">@interface MyClass (Category1)</span><br><span class="line"></span><br><span class="line">@property(nonatomic,copy) NSString *name;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
+<p>MyClass+Category1.m:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#import "MyClass+Category1.h"</span></span><br><span class="line"><span class="comment">#import &lt;objc/runtime.h&gt;</span></span><br><span class="line"></span><br><span class="line">@implementation MyClass (Category1)</span><br><span class="line"></span><br><span class="line">+ (void)load</span><br><span class="line">&#123;</span><br><span class="line">    NSLog(@<span class="string">"%@"</span>,@<span class="string">"load in Category1"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (void)<span class="built_in">set</span>Name:(NSString *)name</span><br><span class="line">&#123;</span><br><span class="line">    objc_<span class="built_in">set</span>AssociatedObject(self,</span><br><span class="line">    <span class="string">"name"</span>,</span><br><span class="line">    name,</span><br><span class="line">    OBJC_ASSOCIATION_COPY);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (NSString*)name</span><br><span class="line">&#123;</span><br><span class="line">    NSString *nameObject = objc_getAssociatedObject(self, <span class="string">"name"</span>);</span><br><span class="line">    <span class="built_in">return</span> nameObject;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
+<p>但是关联对象又是存在什么地方呢？ 如何存储？ 对象销毁时候如何处理关联对象呢？<br>我们去翻一下runtime的源码，在objc-references.mm文件中有个方法_object_set_associative_reference：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">void _object_<span class="built_in">set</span>_associative_reference(id object, void *key, id value, uintptr_t policy) &#123;</span><br><span class="line">    // retain the new value (<span class="keyword">if</span> any) outside the lock.</span><br><span class="line">    ObjcAssociation old_association(0, nil);</span><br><span class="line">    id new_value = value ? acquireValue(value, policy) : nil;</span><br><span class="line">    &#123;</span><br><span class="line">        AssociationsManager manager;</span><br><span class="line">        AssociationsHashMap &amp;associations(manager.associations());</span><br><span class="line">        disguised_ptr_t disguised_object = DISGUISE(object);</span><br><span class="line">        <span class="keyword">if</span> (new_value) &#123;</span><br><span class="line">            // <span class="built_in">break</span> any existing association.</span><br><span class="line">            AssociationsHashMap::iterator i = associations.find(disguised_object);</span><br><span class="line">            <span class="keyword">if</span> (i != associations.end()) &#123;</span><br><span class="line">                // secondary table exists</span><br><span class="line">                ObjectAssociationMap *refs = i-&gt;second;</span><br><span class="line">                ObjectAssociationMap::iterator j = refs-&gt;find(key);</span><br><span class="line">                <span class="keyword">if</span> (j != refs-&gt;end()) &#123;</span><br><span class="line">                    old_association = j-&gt;second;</span><br><span class="line">                    j-&gt;second = ObjcAssociation(policy, new_value);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    (*refs)[key] = ObjcAssociation(policy, new_value);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                // create the new association (first time).</span><br><span class="line">                ObjectAssociationMap *refs = new ObjectAssociationMap;</span><br><span class="line">                associations[disguised_object] = refs;</span><br><span class="line">                (*refs)[key] = ObjcAssociation(policy, new_value);</span><br><span class="line">                _class_<span class="built_in">set</span>InstancesHaveAssociatedObjects(_object_getClass(object));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            // setting the association to nil breaks the association.</span><br><span class="line">            AssociationsHashMap::iterator i = associations.find(disguised_object);</span><br><span class="line">            <span class="keyword">if</span> (i !=  associations.end()) &#123;</span><br><span class="line">                ObjectAssociationMap *refs = i-&gt;second;</span><br><span class="line">                ObjectAssociationMap::iterator j = refs-&gt;find(key);</span><br><span class="line">                <span class="keyword">if</span> (j != refs-&gt;end()) &#123;</span><br><span class="line">                    old_association = j-&gt;second;</span><br><span class="line">                    refs-&gt;erase(j);</span><br><span class="line">                &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">// release the old value (outside of the lock).</span><br><span class="line"><span class="keyword">if</span> (old_association.hasValue()) ReleaseValue()(old_association);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们可以看到所有的关联对象都由AssociationsManager管理，而AssociationsManager定义如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class AssociationsManager &#123;</span><br><span class="line">    static OSSpinLock _lock;</span><br><span class="line">    static AssociationsHashMap *_map;               // associative references:  object pointer -&gt;       PtrPtrHashMap.</span><br><span class="line">public:</span><br><span class="line">    <span class="function"><span class="title">AssociationsManager</span></span>()   &#123; OSSpinLockLock(&amp;_lock); &#125;</span><br><span class="line">    ~<span class="function"><span class="title">AssociationsManager</span></span>()  &#123; OSSpinLockUnlock(&amp;_lock); &#125;</span><br><span class="line"></span><br><span class="line">    AssociationsHashMap &amp;<span class="function"><span class="title">associations</span></span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> (_map == NULL)</span><br><span class="line">            _map = new AssociationsHashMap();</span><br><span class="line">            <span class="built_in">return</span> *_map;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>AssociationsManager里面是由一个静态AssociationsHashMap来存储所有的关联对象的。这相当于把所有对象的关联对象都存在一个全局map里面。而map的的key是这个对象的指针地址（任意两个不同对象的指针地址一定是不同的），而这个map的value又是另外一个AssociationsHashMap，里面保存了关联对象的kv对。<br>而在对象的销毁逻辑里面，见objc-runtime-new.mm:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">void *objc_destructInstance(id obj) </span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (obj) &#123;</span><br><span class="line">        Class isa_gen = _object_getClass(obj);</span><br><span class="line">        class_t *isa = newcls(isa_gen);</span><br><span class="line"></span><br><span class="line">        // Read all of the flags at once <span class="keyword">for</span> performance.</span><br><span class="line">        bool cxx = hasCxxStructors(isa);</span><br><span class="line">        bool assoc = !UseGC &amp;&amp; _class_instancesHaveAssociatedObjects(isa_gen);</span><br><span class="line"></span><br><span class="line">        // This order is important.</span><br><span class="line">        <span class="keyword">if</span> (cxx) object_cxxDestruct(obj);</span><br><span class="line">        <span class="keyword">if</span> (assoc) _object_remove_assocations(obj);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!UseGC) objc_clear_deallocating(obj);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">return</span> obj;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>嗯，runtime的销毁对象函数objc_destructInstance里面会判断这个对象有没有关联对象，如果有，会调用_object_remove_assocations做关联对象的清理工作。</p>
+<p>#后记<br>正如侯捷先生所讲-“源码面前，了无秘密”，Apple的Cocoa Touch框架虽然并不开源，但是Objective-C的runtime和Core Foundation却是完全开放源码的(在<a href="http://www.opensource.apple.com/tarballs/" target="_blank" rel="external">http://www.opensource.apple.com/tarballs/可以下载到全部的开源代码</a>)。<br>本系列runtime源码学习将会持续更新，意犹未尽的同学可以自行到上述网站下载源码学习。行笔简陋，如有错误，望指正。</p>
+<p>本文转自<a href="http://tech.meituan.com/DiveIntoCategory.html" target="_blank" rel="external">深入理解Objective-C：Category</a></p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/2016/05/08/Objective-C运行时原理（一）：类和对象/" itemprop="url">
+                  Objective-C运行时原理（一）：类和对象
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-05-08T14:24:08+08:00" content="2016-05-08">
+              2016-05-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Objective-C/" itemprop="url" rel="index">
+                    <span itemprop="name">Objective-C</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/05/08/Objective-C运行时原理（一）：类和对象/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/08/Objective-C运行时原理（一）：类和对象/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
