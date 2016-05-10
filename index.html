@@ -319,24 +319,8 @@ struct objc_class *isa;
 typedef struct objc_class *Class; //类  (class object)
 typedef struct objc_object *id;   //对象 (instance of class)
 </code></pre><p>在objc中，<code>id</code>代表了一个对象。根据上面的声明，凡是首地址是<code>*isa</code>的struct指针，都可以被认为是objc中的对象。运行时可以通过<code>isa</code>指针，查找到该对象是属于什么类(Class)。</p>
-<h1 id="2-运行时的实现方式"><a href="#2-运行时的实现方式" class="headerlink" title="2.运行时的实现方式"></a>2.运行时的实现方式</h1><p>根据上面的说法，类对象(Class)同样也算是对象，那它的<code>isa</code>又是指向了什么呢？为了了解这些东西是怎么回事，这里写一个简单的类NyanCat，并且用C重写一遍，看看编译器在底层到底是如何实现的。</p>
-<pre><code>@interface NyanCat : NSObject {
-int age;
-NSString *name;
-}
-- (void)nyan;
-+ (void)nyan;
-@end
-
-@implementation NyanCat
-- (void)nyan1 {
-printf(&quot;instance nyan~&quot;);
-}
-+ (void)nyan2 {
-printf(&quot;class nyan~&quot;);
-}
-@end
-</code></pre><p>上面是一个简单的类，有两个<strong>instance variable</strong>，有一个类方法、一个实例方法。</p>
+<h1 id="2-运行时的实现方式"><a href="#2-运行时的实现方式" class="headerlink" title="2.运行时的实现方式"></a>2.运行时的实现方式</h1><p>根据上面的说法，类对象(Class)同样也算是对象，那它的<code>isa</code>又是指向了什么呢？为了了解这些东西是怎么回事，这里写一个简单的类NyanCat，并且用C重写一遍，看看编译器在底层到底是如何实现的。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">@interface NyanCat : NSObject &#123;</span><br><span class="line">int age;</span><br><span class="line">NSString *name;</span><br><span class="line">&#125;</span><br><span class="line">- (void)nyan;</span><br><span class="line">+ (void)nyan;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">@implementation NyanCat</span><br><span class="line">- (void)nyan1 &#123;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">"instance nyan~"</span>);</span><br><span class="line">&#125;</span><br><span class="line">+ (void)nyan2 &#123;</span><br><span class="line"><span class="built_in">printf</span>(<span class="string">"class nyan~"</span>);</span><br><span class="line">&#125;</span><br><span class="line">@end</span><br></pre></td></tr></table></figure></p>
+<p>上面是一个简单的类，有两个<strong>instance variable</strong>，有一个类方法、一个实例方法。</p>
 <blockquote>
 <p>clang -rewrite-objc NyanCat.m</p>
 </blockquote>
