@@ -253,6 +253,171 @@
             
               
                 
+                <a class="post-title-link" href="/2016/05/10/Objective-C运行时原理（三）：消息和消息转发/" itemprop="url">
+                  Objective-C运行时原理（三）：消息和消息转发
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-05-10T17:09:12+08:00" content="2016-05-10">
+              2016-05-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Objective-C/" itemprop="url" rel="index">
+                    <span itemprop="name">Objective-C</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/05/10/Objective-C运行时原理（三）：消息和消息转发/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/Objective-C运行时原理（三）：消息和消息转发/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <blockquote>
+<p>[receiver message];</p>
+</blockquote>
+<p>objective-c的这种有趣的语法被苹果称为“发消息”。与其他面向对象语言(C++/Java)的“方法调用”不同，objc的消息机制是由运行时实现、非常灵活动态。这篇文章简单记录一下objc运行时对于消息发送和转发的实现。</p>
+<h1 id="1-编译器的转换"><a href="#1-编译器的转换" class="headerlink" title="1.编译器的转换"></a>1.编译器的转换</h1><pre><code>[receiver message];
+</code></pre><p>这一句的含义是：向receiver发送名为message的消息。</p>
+<blockquote>
+<p>clang -rewrite-objc MyClass.m</p>
+</blockquote>
+<p>执行上面的命令，将这一句重写为C代码，是这样的：</p>
+<pre><code>((void (*)(id, SEL))(void *)objc_msgSend)((id)receiver, sel_registerName(&quot;message&quot;));
+</code></pre><p>去掉那些强制转换，最终[receiver message]会由编译器转化为以下的纯C调用。</p>
+<pre><code>objc_msgSend(receiver, @selector(message));
+</code></pre><p>所以说，objc发送消息，最终大都会转换为objc_msgSend的方法调用。</p>
+<p>苹果在文档里是这么写的：</p>
+<pre><code>id objc_msgSend(id self, SEL _cmd, ...)
+</code></pre><p>将一个消息发送给一个对象，并且返回一个值。</p>
+<p>其中，self是消息的接受者，_cmd是selector， …是可变参数列表。</p>
+<p>当向一般对象发送消息时，调用<code>objc_msgSend；</code>当向super发送消息时，调用的是<code>objc_msgSendSuper；</code> 如果返回值是一个结构体，则会调用<code>objc_msgSend_stret</code>或<code>objc_msgSendSuper_stret</code>。</p>
+<h1 id="2-运行时定义的数据结构"><a href="#2-运行时定义的数据结构" class="headerlink" title="2.运行时定义的数据结构"></a>2.运行时定义的数据结构</h1><p>为了了解objc_msgSend方法做了什么，这里需要查看一下objc runtime的<a href="http://www.opensource.apple.com/tarballs/objc4/" target="_blank" rel="external">源码</a>。</p>
+<p>首先 runtime定义了如下的数据类型：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">typedef struct objc_class *Class;</span><br><span class="line">typedef struct objc_object *id;</span><br><span class="line">struct objc_object &#123;</span><br><span class="line">    Class isa;</span><br><span class="line">&#125;;</span><br><span class="line">struct objc_class &#123;</span><br><span class="line">    Class isa;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">/// 不透明结构体, selector</span><br><span class="line">typedef struct objc_selector *SEL;</span><br><span class="line"></span><br><span class="line">/// 函数指针, 用于表示对象方法的实现</span><br><span class="line">typedef id (*IMP)(id, SEL, ...);</span><br></pre></td></tr></table></figure></p>
+<p><code>id</code>指代objc中的对象，每个对象的在内存的结构并不是确定的，但其首地址指向的肯定是isa。通过isa指针，运行时就能获取到<code>objc_class</code>。</p>
+<p><code>objc_class</code>表示对象的Class，它的结构是确定的，由编译器生成。</p>
+<p>SEL表示选择器，这是一个不透明结构体。但是实际上，通常可以把它理解为一个字符串。例如<code>printf(&quot;%s&quot;,@selector(isEqual:))</code>会打印出”isEqual:”。运行时维护着一张SEL的表，将相同字符串的方法名映射到唯一一个SEL。  通过<code>sel_registerName(char *name)</code>方法，可以查找到这张表中方法名对应的SEL。苹果提供了一个语法糖<code>@selector</code>用来方便地调用该函数。</p>
+<p>IMP是一个函数指针。objc中的方法最终会被转换成纯C的函数，IMP就是为了表示这些函数的地址。</p>
+<p>了解了这些基础的类型定义后，clang翻译的代码就能看懂了：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">///objc代码</span><br><span class="line">@implementation NyanCat</span><br><span class="line">+ (void)nyan &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p"</span>,self, _cmd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (int) <span class="built_in">set</span>Object:(id)obj <span class="keyword">for</span>Key:(id)key &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p %p %p"</span>,self, _cmd, obj, key);</span><br><span class="line">    <span class="built_in">return</span> 0;</span><br><span class="line">&#125;</span><br><span class="line">@end</span><br><span class="line"></span><br><span class="line">///c翻译的版本</span><br><span class="line">static void _C_NyanCat_nyan(Class self, SEL _cmd) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p"</span>,self, _cmd);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">static int _I_NyanCat_<span class="built_in">set</span>Object_<span class="keyword">for</span>Key_(NyanCat * self, SEL _cmd, id obj, id key) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%p %p %p %p"</span>,self, _cmd, obj, key);</span><br><span class="line">    <span class="built_in">return</span> 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里就可以看出来了，实际上消息发送，最终会转换成调用C函数。<code>obj_msgSend</code>的实际动作就是：找到这个函数指针，然后调用它。</p>
+<p>#3.obj_msgSend的动作<br>为了加快速度，苹果对这个方法做了很多优化，这个方法是用汇编实现的。我汇编渣渣。。所以这里稍微整理一下，用伪代码表示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">id objc_msgSend(id self, SEL op, ...) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!self) <span class="built_in">return</span> nil;</span><br><span class="line">    IMP imp = class_getMethodImplementation(self-&gt;isa, SEL op);</span><br><span class="line">    imp(self, op, ...); //调用这个函数，伪代码...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//查找IMP</span><br><span class="line">IMP class_getMethodImplementation(Class cls, SEL sel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cls || !sel) <span class="built_in">return</span> nil;</span><br><span class="line">    IMP imp = lookUpImpOrNil(cls, sel);</span><br><span class="line">    <span class="keyword">if</span> (!imp) <span class="built_in">return</span> _objc_msgForward; //这个是用于消息转发的</span><br><span class="line">    <span class="built_in">return</span> imp;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">IMP lookUpImpOrNil(Class cls, SEL sel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!cls-&gt;initialize()) &#123;</span><br><span class="line">        _class_initialize(cls);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Class curClass = cls;</span><br><span class="line">    IMP imp = nil;</span><br><span class="line">    <span class="keyword">do</span> &#123; //先查缓存,缓存没有时重建,仍旧没有则向父类查询</span><br><span class="line">        <span class="keyword">if</span> (!curClass) <span class="built_in">break</span>;</span><br><span class="line">        <span class="keyword">if</span> (!curClass-&gt;cache) fill_cache(cls, curClass);</span><br><span class="line">        imp = cache_getImp(curClass, sel);</span><br><span class="line">        <span class="keyword">if</span> (imp) <span class="built_in">break</span>;</span><br><span class="line">    &#125; <span class="keyword">while</span> (curClass = curClass-&gt;superclass);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">return</span> imp;</span><br><span class="line">&#125;</span><br><span class="line">`objc_msgSend`的动作比较清晰：首先在Class中的缓存查找imp（没缓存则初始化缓存），如果没找到，则向父类的Class查找。如果一直查找到根类仍旧没有实现，则用`_objc_msgForward`函数指针代替imp。最后，执行这个imp。</span><br><span class="line"></span><br><span class="line">`_objc_msgForward`是用于消息转发的。这个函数的实现并没有在objc-runtime的开源代码里面，而是在Foundation框架里面实现的。加上断点启动程序后，会发现__CFInitialize这个方法会调用objc_<span class="built_in">set</span>ForwardHandler函数来注册一个实现。</span><br><span class="line"><span class="comment"># 4.消息转发</span></span><br><span class="line">上面可以知道，当向一个对象发送一条消息，但它并没有实现的时候，_objc_msgForward会尝试做消息转发。为了展示消息转发的具体动作，这里尝试向一个对象发送一条错误的消息，并查看一下_objc_msgForward是如何进行转发的。</span><br><span class="line"></span><br><span class="line">首先开启调试模式、打印出所有运行时发送的消息：</span><br><span class="line">可以在代码里执行下面的方法：</span><br><span class="line">``` bash</span><br><span class="line">(void)instrumentObjcMessageSends(YES);</span><br></pre></td></tr></table></figure></p>
+<p>或者暂停程序运行，并在gdb中输入下面的命令：</p>
+<blockquote>
+<p>call (void)instrumentObjcMessageSends(YES)<br>之后，运行时发送的所有消息都会打印到/tmp/msgSend-xxxx文件里了。</p>
+</blockquote>
+<p>这里执行以下语句，向一个对象发送一条错误的消息：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Test *<span class="built_in">test</span> = [Test new];</span><br><span class="line">[<span class="built_in">test</span> performSelector(@selector(xxx))];</span><br></pre></td></tr></table></figure></p>
+<p>打印出来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">+ Test NSObject initialize</span><br><span class="line">+ Test NSObject new</span><br><span class="line">+ Test NSObject alloc</span><br><span class="line">+ Test NSObject allocWithZone:</span><br><span class="line">- Test NSObject init</span><br><span class="line">- Test NSObject performSelector:</span><br><span class="line">+ Test NSObject resolveInstanceMethod:</span><br><span class="line">- Test NSObject forwardingTargetForSelector:</span><br><span class="line">- Test NSObject methodSignatureForSelector:</span><br><span class="line">- Test NSObject class</span><br><span class="line">- Test NSObject doesNotRecognizeSelector:</span><br></pre></td></tr></table></figure></p>
+<p>结合NSObject文档可以知道，<code>_objc_msgForward</code>消息转发做了如下几件事：</p>
+<ol>
+<li>调用resolveInstanceMethod:方法，允许用户在此时为该Class动态添加实现。如果有实现了，则调用并返回。如果仍没实现，继续下面的动作。</li>
+<li>调用forwardingTargetForSelector:方法，尝试找到一个能响应该消息的对象。如果获取到，则直接转发给它。如果返回了nil，继续下面的动作。</li>
+<li>调用methodSignatureForSelector:方法，尝试获得一个方法签名。如果获取不到，则直接调用doesNotRecognizeSelector抛出异常。</li>
+<li>调用forwardInvocation:方法，将地3步获取到的方法签名包装成Invocation传入，如何处理就在这里面了。</li>
+</ol>
+<p>上面这4个方法均是模板方法，开发者可以override，由runtime来调用。最常见的实现消息转发，就是重写方法3和4，吞掉一个消息或者代理给其他对象都是没问题的。</p>
+<h1 id="5-其他注意事项"><a href="#5-其他注意事项" class="headerlink" title="5.其他注意事项"></a>5.其他注意事项</h1><p>由上面介绍可以知道，一个objc程序启动后，需要进行类的初始化、调用方法时的cache初始化，所以会有一段”热身”的时间。之后，再发送消息的时候就直接走缓存了，所以消息发送的效率非常高，且没有牺牲动态特性。</p>
+<p>如果希望避免方法查找带来的那一<a href="http://vagase.me/blog/dig-objc-msgsend/" target="_blank" rel="external">丁点</a>开销，可以用<code>methodForSelector</code> 手动获得IMP来直接调用。用 <code>methodForSelector</code> 获取IMP时，会尝试forward机制， 所以在没有对应方法时，返回的是 <code>_objc_msgForward</code> ，不会返回NULL。</p>
+<p>用 <code>respondsToSelector</code> 判断对象是否能响应消息时, 会避开forward机制 ，但是该方法会尝试一次<code>resolveInstanceMethod</code>。</p>
+<p>PS: stackoverflow上有两个不错的文章：<a href="http://stackoverflow.com/questions/15178395/how-does-forwardinvocation-get-called" target="_blank" rel="external">1</a>  <a href="http://stackoverflow.com/questions/4574465/objective-c-respondstoselector-question" target="_blank" rel="external">2</a><br>本文转自<a href="http://blog.ibireme.com/2013/11/26/objective-c-messaging/" target="_blank" rel="external">Objective-C 中的消息与消息转发</a>。</p>
+
+          
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/05/10/Objective-C运行时原理（二）：Category/" itemprop="url">
                   Objective-C运行时原理（二）：Category
                 </a>
@@ -896,7 +1061,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-count">5</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
