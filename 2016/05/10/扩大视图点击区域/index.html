@@ -84,19 +84,31 @@
 
 
 
-<meta name="description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
+<meta name="description" content="导语
+
+ 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。
+
+分类介入UIView+ExtendTouchRect写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。分类写好后，一行代码解决问题
+使用代码self.button.touchExtend">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Objective-C Debug小技巧">
-<meta property="og:url" content="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/index.html">
+<meta property="og:title" content="扩大视图点击区域">
+<meta property="og:url" content="https://github.com/q195945056/2016/05/10/扩大视图点击区域/index.html">
 <meta property="og:site_name" content="ADH">
-<meta property="og:description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
-<meta property="og:updated_time" content="2016-05-10T10:15:32.000Z">
+<meta property="og:description" content="导语
+
+ 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。
+
+分类介入UIView+ExtendTouchRect写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。分类写好后，一行代码解决问题
+使用代码self.button.touchExtend">
+<meta property="og:updated_time" content="2016-05-10T10:34:28.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Objective-C Debug小技巧">
-<meta name="twitter:description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
+<meta name="twitter:title" content="扩大视图点击区域">
+<meta name="twitter:description" content="导语
+
+ 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。
+
+分类介入UIView+ExtendTouchRect写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。分类写好后，一行代码解决问题
+使用代码self.button.touchExtend">
 
 
 
@@ -114,7 +126,7 @@
   };
 </script>
 
-  <title> Objective-C Debug小技巧 | ADH </title>
+  <title> 扩大视图点击区域 | ADH </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -254,7 +266,7 @@
             
             
               
-                Objective-C Debug小技巧
+                扩大视图点击区域
               
             
           </h1>
@@ -266,7 +278,7 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-05-10T18:13:25+08:00" content="2016-05-10">
+            <time itemprop="dateCreated" datetime="2016-05-10T18:28:25+08:00" content="2016-05-10">
               2016-05-10
             </time>
           </span>
@@ -280,8 +292,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Xcode/" itemprop="url" rel="index">
-                    <span itemprop="name">Xcode</span>
+                  <a href="/categories/iOS/" itemprop="url" rel="index">
+                    <span itemprop="name">iOS</span>
                   </a>
                 </span>
 
@@ -296,8 +308,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/05/10/Objective-C Debug小技巧/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/Objective-C Debug小技巧/" itemprop="commentsCount"></span>
+                <a href="/2016/05/10/扩大视图点击区域/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/扩大视图点击区域/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -320,9 +332,13 @@
       
 
       
-        <p>有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">- (void) doSomthingMethods&#123;</span><br><span class="line">	NSLog(@&quot;\n Function: %s\n Pretty function: %s\n Line: %d\n File: %s\n &quot;,__func__, __PRETTY_FUNCTION__, __LINE__, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">```	</span><br><span class="line">__func__, __PRETTY_FUNCTION__, __LINE__, __FILE__等都是系统预留的定义词，简单易用。</span><br><span class="line"></span><br><span class="line">这里有一个定义较好的宏来调试</span><br></pre></td></tr></table></figure>
-<p>#define LZLog(format, …) do {\<br>fprintf(stderr, “&lt;%s : %d&gt; %s\n”,[[[NSString stringWithUTF8String:<strong>FILE</strong>] lastPathComponent] UTF8String],  \<br><strong>LINE</strong>, <strong>func</strong>);\<br>(NSLog)((format), ##<strong>VA_ARGS</strong>);\<br>fprintf(stderr, “——-\n”);\<br>} while (0)<br>```</p>
+        <h3 id="导语"><a href="#导语" class="headerlink" title="导语"></a>导语</h3><hr>
+<blockquote>
+<p> 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。</p>
+</blockquote>
+<h4 id="分类介入UIView-ExtendTouchRect"><a href="#分类介入UIView-ExtendTouchRect" class="headerlink" title="分类介入UIView+ExtendTouchRect"></a>分类介入UIView+ExtendTouchRect</h4><p>写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。<br>分类写好后，一行代码解决问题</p>
+<h4 id="使用代码"><a href="#使用代码" class="headerlink" title="使用代码"></a>使用代码</h4><pre><code>self.button.touchExtendInset = UIEdgeInsetsMake(-10, -10, -10, -10)
+</code></pre><h4 id="实现代码如下"><a href="#实现代码如下" class="headerlink" title="实现代码如下"></a>实现代码如下</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">void Swizzle(Class c, SEL orig, SEL new) &#123;  </span><br><span class="line">    Method origMethod = class_getInstanceMethod(c, orig);</span><br><span class="line">	Method newMethod = class_getInstanceMethod(c, new);</span><br><span class="line">	if (class_addMethod(c, orig, method_getImplementation(newMethod), method_getTypeEncoding(newMethod)))&#123;</span><br><span class="line">		class_replaceMethod(c, new, method_getImplementation(origMethod), method_getTypeEncoding(origMethod));</span><br><span class="line">	&#125; else &#123;</span><br><span class="line">		method_exchangeImplementations(origMethod, newMethod);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">@implementation UIView (ExtendTouchRect)</span><br><span class="line">+ (void)load &#123;</span><br><span class="line">	Swizzle(self, @selector(pointInside:withEvent:), @selector(myPointInside:withEvent:));</span><br><span class="line">&#125;</span><br><span class="line">- (BOOL)myPointInside:(CGPoint)point withEvent:(UIEvent *)event &#123;</span><br><span class="line">    if (UIEdgeInsetsEqualToEdgeInsets(self.touchExtendInset, UIEdgeInsetsZero) || self.hidden ||</span><br><span class="line">([self isKindOfClass:UIControl.class] &amp;&amp; !((UIControl *)self).enabled)) &#123;</span><br><span class="line">        return [self myPointInside:point withEvent:event]; // original implementation</span><br><span class="line">    &#125;</span><br><span class="line">    CGRect hitFrame = UIEdgeInsetsInsetRect(self.bounds, self.touchExtendInset);</span><br><span class="line">    hitFrame.size.width = MAX(hitFrame.size.width, 0); // don&apos;t allow negative sizes</span><br><span class="line">    hitFrame.size.height = MAX(hitFrame.size.height, 0);</span><br><span class="line">    return CGRectContainsPoint(hitFrame, point);</span><br><span class="line">&#125;</span><br><span class="line">static char touchExtendInsetKey;  </span><br><span class="line">- (void)setTouchExtendInset:(UIEdgeInsets)touchExtendInset &#123;</span><br><span class="line">	objc_setAssociatedObject(self, &amp;touchExtendInsetKey, [NSValue valueWithUIEdgeInsets:touchExtendInset],</span><br><span class="line">OBJC_ASSOCIATION_RETAIN);</span><br><span class="line">&#125;</span><br><span class="line">- (UIEdgeInsets)touchExtendInset &#123;</span><br><span class="line">	return [objc_getAssociatedObject(self, &amp;touchExtendInsetKey) UIEdgeInsetsValue];</span><br><span class="line">&#125;</span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
 
       
     </div>
@@ -347,17 +363,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/05/10/Objective-C运行时原理（四）：Block/" rel="next" title="Objective-C运行时原理（四）：Block">
-                <i class="fa fa-chevron-left"></i> Objective-C运行时原理（四）：Block
+              <a href="/2016/05/10/浅谈对象组合和继承/" rel="next" title="浅谈对象组合和继承">
+                <i class="fa fa-chevron-left"></i> 浅谈对象组合和继承
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/05/10/学习OSI/" rel="prev" title="学习OSI">
-                学习OSI <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -372,10 +384,10 @@
 
     <div class="post-spread">
       
-        <div class="ds-share flat" data-thread-key="2016/05/10/Objective-C Debug小技巧/"
-     data-title="Objective-C Debug小技巧"
+        <div class="ds-share flat" data-thread-key="2016/05/10/扩大视图点击区域/"
+     data-title="扩大视图点击区域"
      data-content=""
-     data-url="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/">
+     data-url="https://github.com/q195945056/2016/05/10/扩大视图点击区域/">
   <div class="ds-share-inline">
     <ul  class="ds-share-icons-16">
 
@@ -402,8 +414,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/05/10/Objective-C Debug小技巧/"
-           data-title="Objective-C Debug小技巧" data-url="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/">
+      <div class="ds-thread" data-thread-key="2016/05/10/扩大视图点击区域/"
+           data-title="扩大视图点击区域" data-url="https://github.com/q195945056/2016/05/10/扩大视图点击区域/">
       </div>
     
   </div>
@@ -494,7 +506,7 @@
               
             
             
-              <p class="post-toc-empty">此文章未包含目录</p>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#导语"><span class="nav-number">1.</span> <span class="nav-text">导语</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#分类介入UIView-ExtendTouchRect"><span class="nav-number">1.1.</span> <span class="nav-text">分类介入UIView+ExtendTouchRect</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用代码"><span class="nav-number">1.2.</span> <span class="nav-text">使用代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#实现代码如下"><span class="nav-number">1.3.</span> <span class="nav-text">实现代码如下</span></a></li></ol></li></ol></div>
             
           </div>
         </section>
