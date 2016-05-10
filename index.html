@@ -306,33 +306,32 @@
       
         
           
-            <p>###导语</p>
-<hr>
+            <h3 id="导语"><a href="#导语" class="headerlink" title="导语"></a>导语</h3><hr>
 <blockquote>
 <p>由于上周看了OSI，对网络7层协议有了一个初步的认识。本周我有时间，简单的看了下位于网络层之上，应用层之下的第四层传输层协议TCP协议。(传输控制协议)</p>
 </blockquote>
-<p>###TCP协议简介<br>TCP(Transmission Control Protocol <a href="http://baike.baidu.com/subview/32754/8048820.htm" target="_blank" rel="external">传输控制协议</a> )是一种面向连接的，可靠的，基于字节流的传输层通信协议。在网络OSI模型中，它完成第四层传输层所指定的功能，用户数据报协议(<a href="http://baike.baidu.com/view/30509.htm" target="_blank" rel="external">UDP协议</a>)是同一层内另一个重要的传输协议。</p>
-<p>###功能<br>应用层向TCP层发送用于网间传输的，用8位字节表示的数据流，然后TCP把数据流区分成适当的长度的报文段(通常受该计算机连接的网络的数据链路层的最大传输单元的限制)。这后TCP把结果包传给IP层，由它来通过网络将包传给接收端实体的TCP层。<br>TCP为了保证报文传输的可靠[1]  ，就给每个包一个序号，同时序号也保证了传送到接收端实体的包的按序接收。然后接收端实体对已成功收到的字节发回一个相应的确认(ACK)；如果发送端实体在合理的往返时延(RTT)内未收到确认，那么对应的数据（假设丢失了）将会被重传。</p>
+<h3 id="TCP协议简介"><a href="#TCP协议简介" class="headerlink" title="TCP协议简介"></a>TCP协议简介</h3><p>TCP(Transmission Control Protocol <a href="http://baike.baidu.com/subview/32754/8048820.htm" target="_blank" rel="external">传输控制协议</a> )是一种面向连接的，可靠的，基于字节流的传输层通信协议。在网络OSI模型中，它完成第四层传输层所指定的功能，用户数据报协议(<a href="http://baike.baidu.com/view/30509.htm" target="_blank" rel="external">UDP协议</a>)是同一层内另一个重要的传输协议。</p>
+<h3 id="功能"><a href="#功能" class="headerlink" title="功能"></a>功能</h3><p>应用层向TCP层发送用于网间传输的，用8位字节表示的数据流，然后TCP把数据流区分成适当的长度的报文段(通常受该计算机连接的网络的数据链路层的最大传输单元的限制)。这后TCP把结果包传给IP层，由它来通过网络将包传给接收端实体的TCP层。<br>TCP为了保证报文传输的可靠[1]  ，就给每个包一个序号，同时序号也保证了传送到接收端实体的包的按序接收。然后接收端实体对已成功收到的字节发回一个相应的确认(ACK)；如果发送端实体在合理的往返时延(RTT)内未收到确认，那么对应的数据（假设丢失了）将会被重传。</p>
 <ul>
 <li>在数据正确性与合法性上，TCP用一个校验和函数来检验数据是否有错误，在发送和接收时都要计算校验和；同时可以使用md5认证对数据进行加密。</li>
 <li>在保证可靠性上，采用超时重传和捎带确认机制。</li>
 <li>在流量控制上，采用滑动窗口[1]  协议，协议中规定，对于窗口内未经确认的分组需要重传。</li>
 <li>在拥塞控制上，采用广受好评的TCP拥塞控制算法（也称AIMD算法）。该算法主要包括三个主要部分：1）加性增、乘性减；2）慢启动；3）对超时事件做出反应。</li>
 </ul>
-<p>###连接建立<br>TCP是因特网中的传输层协议，使用<a href="http://baike.baidu.com/view/2494361.htm" target="_blank" rel="external">三次握手协议</a>建立连接，当主动方发出SYN连接请求后，等待对方回答SYN+ACK，并最络对对方的SYN执行ACK确认。这种建立连接的方法可以防止错误的连接，TCP使用的流量控制协议是可变大小的滑动窗口协议。<br>TCP三次握手的过程如下：</p>
+<h3 id="连接建立"><a href="#连接建立" class="headerlink" title="连接建立"></a>连接建立</h3><p>TCP是因特网中的传输层协议，使用<a href="http://baike.baidu.com/view/2494361.htm" target="_blank" rel="external">三次握手协议</a>建立连接，当主动方发出SYN连接请求后，等待对方回答SYN+ACK，并最络对对方的SYN执行ACK确认。这种建立连接的方法可以防止错误的连接，TCP使用的流量控制协议是可变大小的滑动窗口协议。<br>TCP三次握手的过程如下：</p>
 <ul>
 <li>客户端发送SYN(SEQ = x)报文给服务器端，进入SYN_SEND状态。</li>
 <li>服务器端收到SYN报文，回应一个SYN(SEQ = y) ACK(ACK = x+1)报文，进入SYN_RECV状态（服务端被动打开后,接收到了客户端的SYN并且发送了ACK时的状态）</li>
 <li>客户端收到服务器端的SYN报文，回应一个ACK(ACK=y+1）报文，进入Established状态。</li>
 </ul>
-<p>###连接终止<br>建立一个连接需要三次握手，而终止一个连接要经过四次挥手，这是由TCP的半关闭(half-close)造成的。<br>过程如下：</p>
+<h3 id="连接终止"><a href="#连接终止" class="headerlink" title="连接终止"></a>连接终止</h3><p>建立一个连接需要三次握手，而终止一个连接要经过四次挥手，这是由TCP的半关闭(half-close)造成的。<br>过程如下：</p>
 <ul>
 <li>某个应用进程首先调用close，称该端执行“主动关闭”（active close）。该端的TCP于是发送一个FIN分节，表示数据发送完毕。</li>
 <li>接收到这个FIN的对端执行 “被动关闭”（passive close），这个FIN由TCP确认。<br>注意：FIN的接收也作为一个文件结束符（end-of-file）传递给接收端应用进程，放在已排队等候该应用进程接收的任何其他数据之后，因为，FIN的接收意味着接收端应用进程在相应连接上再无额外数据可接收。</li>
 <li>一段时间后，接收到这个文件结束符的应用进程将调用close关闭它的套接字。这导致它的TCP也发送一个FIN。</li>
 <li>接收这个最终FIN的原发送端TCP（即执行主动关闭的那一端）确认这个FIN。[1]<br>既然每个方向都需要一个FIN和一个ACK，因此通常需要4个分节。</li>
 </ul>
-<p>###总结TCP的三次握手四次挥手<br>建立连接时三次握手 ：1客户端发请求给服务器 2服务器收到报文回应客户端 3.客户端收到服务器的报文 回应一个报文进入Established状态<br>断开连接时四次挥手：1,原端调用close“主动关闭”，该端TCP发送一个FIN分节。2，对端接收这个FIN执行“被动关闭”。3，对端调用close关闭它的sockt，TCP发送一个FIN。4，原端接收这个FIN，并确认。<br>关闭可以由双端中的任一端发起。</p>
+<h3 id="总结TCP的三次握手四次挥手"><a href="#总结TCP的三次握手四次挥手" class="headerlink" title="总结TCP的三次握手四次挥手"></a>总结TCP的三次握手四次挥手</h3><p>建立连接时三次握手 ：1客户端发请求给服务器 2服务器收到报文回应客户端 3.客户端收到服务器的报文 回应一个报文进入Established状态<br>断开连接时四次挥手：1,原端调用close“主动关闭”，该端TCP发送一个FIN分节。2，对端接收这个FIN执行“被动关闭”。3，对端调用close关闭它的sockt，TCP发送一个FIN。4，原端接收这个FIN，并确认。<br>关闭可以由双端中的任一端发起。</p>
 
           
         
