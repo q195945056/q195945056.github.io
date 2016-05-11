@@ -84,19 +84,55 @@
 
 
 
-<meta name="description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
+<meta name="description" content="度量网络性能的三个重要指标
+网络带宽(两个端点之间的通信通道每秒可以传输的位数，任何网络连接的最大速率取决于通信路径上的最慢链路)
+网络延时(网络包在两个端点音一次往返所需的时间)
+设备电量
+
+设备电量
+屏幕显示与背光
+位置服务
+Wi-Fi无线电
+蜂窝无线电
+图形处理器
+CPU
+蓝牙无线电
+声音处理器如果应用将传输的数据量降到最小，优化对现有的TCP连接的使用，避免不必要的请求，那就可以减少设备无">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Objective-C Debug小技巧">
-<meta property="og:url" content="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/index.html">
+<meta property="og:title" content="iOS网络性能优化">
+<meta property="og:url" content="https://github.com/q195945056/2016/05/11/iOS网络性能优化/index.html">
 <meta property="og:site_name" content="ADH">
-<meta property="og:description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
-<meta property="og:updated_time" content="2016-05-10T10:15:32.000Z">
+<meta property="og:description" content="度量网络性能的三个重要指标
+网络带宽(两个端点之间的通信通道每秒可以传输的位数，任何网络连接的最大速率取决于通信路径上的最慢链路)
+网络延时(网络包在两个端点音一次往返所需的时间)
+设备电量
+
+设备电量
+屏幕显示与背光
+位置服务
+Wi-Fi无线电
+蜂窝无线电
+图形处理器
+CPU
+蓝牙无线电
+声音处理器如果应用将传输的数据量降到最小，优化对现有的TCP连接的使用，避免不必要的请求，那就可以减少设备无">
+<meta property="og:updated_time" content="2016-05-11T01:55:07.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Objective-C Debug小技巧">
-<meta name="twitter:description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
+<meta name="twitter:title" content="iOS网络性能优化">
+<meta name="twitter:description" content="度量网络性能的三个重要指标
+网络带宽(两个端点之间的通信通道每秒可以传输的位数，任何网络连接的最大速率取决于通信路径上的最慢链路)
+网络延时(网络包在两个端点音一次往返所需的时间)
+设备电量
+
+设备电量
+屏幕显示与背光
+位置服务
+Wi-Fi无线电
+蜂窝无线电
+图形处理器
+CPU
+蓝牙无线电
+声音处理器如果应用将传输的数据量降到最小，优化对现有的TCP连接的使用，避免不必要的请求，那就可以减少设备无">
 
 
 
@@ -114,7 +150,7 @@
   };
 </script>
 
-  <title> Objective-C Debug小技巧 | ADH </title>
+  <title> iOS网络性能优化 | ADH </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -254,7 +290,7 @@
             
             
               
-                Objective-C Debug小技巧
+                iOS网络性能优化
               
             
           </h1>
@@ -266,8 +302,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-05-10T18:13:25+08:00" content="2016-05-10">
-              2016-05-10
+            <time itemprop="dateCreated" datetime="2016-05-11T09:53:49+08:00" content="2016-05-11">
+              2016-05-11
             </time>
           </span>
 
@@ -280,8 +316,8 @@
               <span class="post-meta-item-text">分类于</span>
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Xcode/" itemprop="url" rel="index">
-                    <span itemprop="name">Xcode</span>
+                  <a href="/categories/网络/" itemprop="url" rel="index">
+                    <span itemprop="name">网络</span>
                   </a>
                 </span>
 
@@ -296,8 +332,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/05/10/Objective-C Debug小技巧/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/Objective-C Debug小技巧/" itemprop="commentsCount"></span>
+                <a href="/2016/05/11/iOS网络性能优化/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/11/iOS网络性能优化/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -320,9 +356,31 @@
       
 
       
-        <p>有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">- (void) doSomthingMethods&#123;</span><br><span class="line">	NSLog(@&quot;\n Function: %s\n Pretty function: %s\n Line: %d\n File: %s\n &quot;,__func__, __PRETTY_FUNCTION__, __LINE__, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">```	</span><br><span class="line">__func__, __PRETTY_FUNCTION__, __LINE__, __FILE__等都是系统预留的定义词，简单易用。</span><br><span class="line"></span><br><span class="line">这里有一个定义较好的宏来调试</span><br></pre></td></tr></table></figure>
-<p>#define LZLog(format, …) do {\<br>fprintf(stderr, “&lt;%s : %d&gt; %s\n”,[[[NSString stringWithUTF8String:<strong>FILE</strong>] lastPathComponent] UTF8String],  \<br><strong>LINE</strong>, <strong>func</strong>);\<br>(NSLog)((format), ##<strong>VA_ARGS</strong>);\<br>fprintf(stderr, “——-\n”);\<br>} while (0)<br>```</p>
+        <h4 id="度量网络性能的三个重要指标"><a href="#度量网络性能的三个重要指标" class="headerlink" title="度量网络性能的三个重要指标"></a>度量网络性能的三个重要指标</h4><ul>
+<li>网络带宽(两个端点之间的通信通道每秒可以传输的位数，任何网络连接的最大速率取决于通信路径上的最慢链路)</li>
+<li>网络延时(网络包在两个端点音一次往返所需的时间)</li>
+<li>设备电量</li>
+</ul>
+<h4 id="设备电量"><a href="#设备电量" class="headerlink" title="设备电量"></a>设备电量</h4><ul>
+<li>屏幕显示与背光</li>
+<li>位置服务</li>
+<li>Wi-Fi无线电</li>
+<li>蜂窝无线电</li>
+<li>图形处理器</li>
+<li>CPU</li>
+<li>蓝牙无线电</li>
+<li>声音处理器<br>如果应用将传输的数据量降到最小，优化对现有的TCP连接的使用，避免不必要的请求，那就可以减少设备无线电的开启时间。</li>
+</ul>
+<h4 id="优化网络操作"><a href="#优化网络操作" class="headerlink" title="优化网络操作"></a>优化网络操作</h4><p>一，承认网络性能存在的问题是解决问题的第一步。<br>二，减少请求带宽</p>
+<ul>
+<li>使用高效的数据交换格式</li>
+<li>在可能的情况下使用预先压缩的数据(使用专门算法对诸如音频，视频和图像进行压缩或按比例缩放以适应通道与设备)</li>
+<li>压缩每一个请求与响应负载(iOS网络请求中都是默认开启压缩的，接收到负载会自动解压缩并以最初的格式呈现在代码中。解压缩的计算代价要比传输10倍字节的通信代价低，因此，激活响应压缩几呼是有益无害的)<br>如果想禁用压缩，应该可以通过清除自动设定的Accept-Encoding头来实现。如相代码演示了如何清除这个头：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url cachePolicy:NSURLCacheStorageAllowed timeoutInterval:20];</span><br><span class="line">[request addValue:@&quot;&quot; forHTTPHeaderField:@&quot;Accept-Encoding&quot;];</span><br></pre></td></tr></table></figure>
+<p>三，降低请求延迟<br>网络延迟包括在手机与运营商网络间建立连接的时间，建立TCP连接的时间，可能还有协商SSL连接的时间，以及发送与接收HTTP请求的时间。 应用可以按照顺序执行所有队列请求，在这个过程中一直保持激活相同的连接，避免建立多个TCP连接开销。<br>可以轻松为NSURLRequest开启管道支持，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url];</span><br><span class="line">[request setHTTPShouldUsePipelining:YES];</span><br></pre></td></tr></table></figure>
+<p>不过，并非所有的服务器都支持HTTP管道<br>四，避免网络请求<br>1.默认缓存行为</p>
 
       
     </div>
@@ -347,17 +405,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/05/10/Objective-C运行时原理（四）：Block/" rel="next" title="Objective-C运行时原理（四）：Block">
-                <i class="fa fa-chevron-left"></i> Objective-C运行时原理（四）：Block
+              <a href="/2016/05/10/扩大视图点击区域/" rel="next" title="扩大视图点击区域">
+                <i class="fa fa-chevron-left"></i> 扩大视图点击区域
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/05/10/学习OSI/" rel="prev" title="学习OSI">
-                学习OSI <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -372,10 +426,10 @@
 
     <div class="post-spread">
       
-        <div class="ds-share flat" data-thread-key="2016/05/10/Objective-C Debug小技巧/"
-     data-title="Objective-C Debug小技巧"
+        <div class="ds-share flat" data-thread-key="2016/05/11/iOS网络性能优化/"
+     data-title="iOS网络性能优化"
      data-content=""
-     data-url="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/">
+     data-url="https://github.com/q195945056/2016/05/11/iOS网络性能优化/">
   <div class="ds-share-inline">
     <ul  class="ds-share-icons-16">
 
@@ -402,8 +456,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/05/10/Objective-C Debug小技巧/"
-           data-title="Objective-C Debug小技巧" data-url="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/">
+      <div class="ds-thread" data-thread-key="2016/05/11/iOS网络性能优化/"
+           data-title="iOS网络性能优化" data-url="https://github.com/q195945056/2016/05/11/iOS网络性能优化/">
       </div>
     
   </div>
@@ -494,7 +548,7 @@
               
             
             
-              <p class="post-toc-empty">此文章未包含目录</p>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#度量网络性能的三个重要指标"><span class="nav-number">1.</span> <span class="nav-text">度量网络性能的三个重要指标</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#设备电量"><span class="nav-number">2.</span> <span class="nav-text">设备电量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#优化网络操作"><span class="nav-number">3.</span> <span class="nav-text">优化网络操作</span></a></li></ol></div>
             
           </div>
         </section>

@@ -84,19 +84,15 @@
 
 
 
-<meta name="description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
-<meta property="og:type" content="article">
-<meta property="og:title" content="Objective-C Debug小技巧">
-<meta property="og:url" content="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/index.html">
+<meta name="description">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ADH">
+<meta property="og:url" content="https://github.com/q195945056/archives/page/2/index.html">
 <meta property="og:site_name" content="ADH">
-<meta property="og:description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
-<meta property="og:updated_time" content="2016-05-10T10:15:32.000Z">
+<meta property="og:description">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Objective-C Debug小技巧">
-<meta name="twitter:description" content="有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：
-1234567- (void) doSomthingMethods&amp;#123;	NSLog(@&amp;quot;\n Function:">
+<meta name="twitter:title" content="ADH">
+<meta name="twitter:description">
 
 
 
@@ -114,7 +110,7 @@
   };
 </script>
 
-  <title> Objective-C Debug小技巧 | ADH </title>
+  <title> 归档 | ADH </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -145,7 +141,7 @@
     
   
 
-  <div class="container one-collumn sidebar-position-left page-post-detail ">
+  <div class="container one-collumn sidebar-position-left  page-archive  ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -233,166 +229,70 @@
           <div id="content" class="content">
             
 
-  <div id="posts" class="posts-expand">
+  <section id="posts" class="posts-collapse">
+    <span class="archive-move-on"></span>
+
+    <span class="archive-page-counter">
+      
+      
+      
+        
+      
+      嗯..! 目前共计 11 篇日志。 继续努力。
+    </span>
+
     
 
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                Objective-C Debug小技巧
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-05-10T18:13:25+08:00" content="2016-05-10">
-              2016-05-10
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Xcode/" itemprop="url" rel="index">
-                    <span itemprop="name">Xcode</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2016/05/10/Objective-C Debug小技巧/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/Objective-C Debug小技巧/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
+      
       
       
 
-      
-        <p>有程序的地方就有bug，有bug的地方就需要debug。对于程序员来说，coding的过程便是制造bug和解决bug。Objective定义了不少表达式来协助debug的流程，将这些表达式用在NSLog中，可以简化部分工作，快速定义到debug的部分。 比如以下代码：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">- (void) doSomthingMethods&#123;</span><br><span class="line">	NSLog(@&quot;\n Function: %s\n Pretty function: %s\n Line: %d\n File: %s\n &quot;,__func__, __PRETTY_FUNCTION__, __LINE__, __FILE__);</span><br><span class="line">&#125;</span><br><span class="line">```	</span><br><span class="line">__func__, __PRETTY_FUNCTION__, __LINE__, __FILE__等都是系统预留的定义词，简单易用。</span><br><span class="line"></span><br><span class="line">这里有一个定义较好的宏来调试</span><br></pre></td></tr></table></figure>
-<p>#define LZLog(format, …) do {\<br>fprintf(stderr, “&lt;%s : %d&gt; %s\n”,[[[NSString stringWithUTF8String:<strong>FILE</strong>] lastPathComponent] UTF8String],  \<br><strong>LINE</strong>, <strong>func</strong>);\<br>(NSLog)((format), ##<strong>VA_ARGS</strong>);\<br>fprintf(stderr, “——-\n”);\<br>} while (0)<br>```</p>
-
-      
-    </div>
-
-    <div>
       
         
-      
-    </div>
-
-    <div>
-      
-        
-
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2016/05/10/Objective-C运行时原理（四）：Block/" rel="next" title="Objective-C运行时原理（四）：Block">
-                <i class="fa fa-chevron-left"></i> Objective-C运行时原理（四）：Block
-              </a>
-            
-          </div>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/05/10/学习OSI/" rel="prev" title="学习OSI">
-                学习OSI <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
+        <div class="collection-title">
+          <h2 class="archive-year motion-element" id="archive-year-2016">2016</h2>
         </div>
       
+      
 
       
-      
-    </footer>
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+
+      <h1 class="post-title">
+        
+            <a class="post-title-link" href="/2016/05/08/Objective-C运行时原理（一）：类和对象/" itemprop="url">
+              
+                <span itemprop="name">Objective-C运行时原理（一）：类和对象</span>
+              
+            </a>
+        
+      </h1>
+
+      <div class="post-meta">
+        <time class="post-time" itemprop="dateCreated"
+              datetime="2016-05-08T14:24:08+08:00"
+              content="2016-05-08" >
+          05-08
+        </time>
+      </div>
+
+    </header>
   </article>
 
 
 
-    <div class="post-spread">
-      
-        <div class="ds-share flat" data-thread-key="2016/05/10/Objective-C Debug小技巧/"
-     data-title="Objective-C Debug小技巧"
-     data-content=""
-     data-url="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/">
-  <div class="ds-share-inline">
-    <ul  class="ds-share-icons-16">
+    
 
-      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
-      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
-      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
-      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
-      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+  </section>
 
-    </ul>
-    <div class="ds-share-icons-more">
-    </div>
-  </div>
-</div>
-      
-    </div>
-  </div>
+  
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/archives/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/archives/">1</a><span class="page-number current">2</span>
+  </nav>
+
+
 
 
           </div>
@@ -400,14 +300,6 @@
 
 
           
-  <div class="comments" id="comments">
-    
-      <div class="ds-thread" data-thread-key="2016/05/10/Objective-C Debug小技巧/"
-           data-title="Objective-C Debug小技巧" data-url="https://github.com/q195945056/2016/05/10/Objective-C Debug小技巧/">
-      </div>
-    
-  </div>
-
 
         </div>
         
@@ -427,17 +319,8 @@
       
 
       
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
-            文章目录
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            站点概览
-          </li>
-        </ul>
-      
 
-      <section class="site-overview sidebar-panel ">
+      <section class="site-overview sidebar-panel  sidebar-panel-active ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/uploads/images/avatar.png"
@@ -487,17 +370,6 @@
 
       </section>
 
-      
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-            
-              
-            
-            
-              <p class="post-toc-empty">此文章未包含目录</p>
-            
-          </div>
-        </section>
       
 
     </div>
@@ -601,9 +473,11 @@
 
 
   
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
-
+  
+    <script type="text/javascript" id="motion.page.archive">
+      $('.archive-year').velocity('transition.slideLeftIn');
+    </script>
+  
 
 
   
