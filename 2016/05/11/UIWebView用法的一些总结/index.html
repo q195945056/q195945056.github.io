@@ -108,7 +108,7 @@
 - (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
 加载NSData
 -">
-<meta property="og:updated_time" content="2016-05-11T02:04:38.000Z">
+<meta property="og:updated_time" content="2016-05-11T02:06:44.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="UIWebView用法的一些总结">
 <meta name="twitter:description" content="导语
@@ -362,14 +362,14 @@
 </code></pre><p>参数script中传入要执行的js代码字符串，结果以字符串形式返回。代码如下</p>
 <h4 id="取web页面的标题"><a href="#取web页面的标题" class="headerlink" title="取web页面的标题"></a>取web页面的标题</h4><pre><code>NSString *title = [webView stringByEvaluatingJavaScriptFromString:@&quot;document.title&quot;];
 </code></pre><h4 id="长按web页面中的各种效果"><a href="#长按web页面中的各种效果" class="headerlink" title="长按web页面中的各种效果"></a>长按web页面中的各种效果</h4><ul>
-<li><p>默认情况下，长按web页中的链接，系统会自动呼出菜单提供open,copy和cancel选项<br>1.取消这种效果，在代理方法webViewDidFinisheLoad中使用：</p>
-<p>  [webView stringByEvaluatingJavaScriptFromString:@”document.documentElement.style.webkitTouchCallout=’none’;”];<br>2.点链接从saifir加载</p>
-<ul>
-<li>(BOOL)webView:(UIWebView <em>)webView shouldStartLoadWithRequest:(NSURLRequest </em>)request navigationType:(UIWebViewNavigationType)navigationType<br>它的返回值用以控制是否允许加载目标链接页面的内容，UIWebViewNavigationType枚举定义了页面中用户行为的分类</li>
+<li>默认情况下，长按web页中的链接，系统会自动呼出菜单提供open,copy和cancel选项<br>1.取消这种效果，在代理方法webViewDidFinisheLoad中使用：</li>
 </ul>
-</li>
-<li><p>UIWebViewNavigationTypeLinkClicked，用户触击了一个链接。</p>
-</li>
+<pre><code>[webView stringByEvaluatingJavaScriptFromString:@&quot;document.documentElement.style.webkitTouchCallout=&apos;none&apos;;&quot;];
+</code></pre><p>2.点链接从saifir加载</p>
+<pre><code>- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType
+</code></pre><p>它的返回值用以控制是否允许加载目标链接页面的内容，UIWebViewNavigationType枚举定义了页面中用户行为的分类</p>
+<ul>
+<li>UIWebViewNavigationTypeLinkClicked，用户触击了一个链接。</li>
 <li>UIWebViewNavigationTypeFormSubmitted，用户提交了一个表单。</li>
 <li>UIWebViewNavigationTypeBackForward，用户触击前进或返回按钮。</li>
 <li>UIWebViewNavigationTypeReload，用户触击重新加载的按钮。</li>
