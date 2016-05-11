@@ -86,29 +86,41 @@
 
 <meta name="description" content="导语
 
- 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。
+由于我们在项目中经常要与h5交互，最好可以对UIWebView有更多的了解。
 
-分类介入UIView+ExtendTouchRect写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。分类写好后，一行代码解决问题
-使用代码self.button.touchExtend">
+加载方法加载NSURL:
+- (void)loadRequest:(NSURLRequest *)request;
+加载HTML字符串
+- (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
+加载NSData
+-">
 <meta property="og:type" content="article">
-<meta property="og:title" content="扩大视图点击区域">
-<meta property="og:url" content="https://github.com/q195945056/2016/05/10/扩大视图点击区域/index.html">
+<meta property="og:title" content="UIWebView用法的一些总结">
+<meta property="og:url" content="https://github.com/q195945056/2016/05/11/UIWebView用法的一些总结/index.html">
 <meta property="og:site_name" content="ADH">
 <meta property="og:description" content="导语
 
- 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。
+由于我们在项目中经常要与h5交互，最好可以对UIWebView有更多的了解。
 
-分类介入UIView+ExtendTouchRect写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。分类写好后，一行代码解决问题
-使用代码self.button.touchExtend">
-<meta property="og:updated_time" content="2016-05-10T10:36:16.000Z">
+加载方法加载NSURL:
+- (void)loadRequest:(NSURLRequest *)request;
+加载HTML字符串
+- (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
+加载NSData
+-">
+<meta property="og:updated_time" content="2016-05-11T02:02:58.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="扩大视图点击区域">
+<meta name="twitter:title" content="UIWebView用法的一些总结">
 <meta name="twitter:description" content="导语
 
- 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。
+由于我们在项目中经常要与h5交互，最好可以对UIWebView有更多的了解。
 
-分类介入UIView+ExtendTouchRect写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。分类写好后，一行代码解决问题
-使用代码self.button.touchExtend">
+加载方法加载NSURL:
+- (void)loadRequest:(NSURLRequest *)request;
+加载HTML字符串
+- (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
+加载NSData
+-">
 
 
 
@@ -126,7 +138,7 @@
   };
 </script>
 
-  <title> 扩大视图点击区域 | ADH </title>
+  <title> UIWebView用法的一些总结 | ADH </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -266,7 +278,7 @@
             
             
               
-                扩大视图点击区域
+                UIWebView用法的一些总结
               
             
           </h1>
@@ -278,8 +290,8 @@
               <i class="fa fa-calendar-o"></i>
             </span>
             <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-05-10T18:28:25+08:00" content="2016-05-10">
-              2016-05-10
+            <time itemprop="dateCreated" datetime="2016-05-11T10:00:25+08:00" content="2016-05-11">
+              2016-05-11
             </time>
           </span>
 
@@ -308,8 +320,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/2016/05/10/扩大视图点击区域/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/10/扩大视图点击区域/" itemprop="commentsCount"></span>
+                <a href="/2016/05/11/UIWebView用法的一些总结/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/11/UIWebView用法的一些总结/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -334,11 +346,48 @@
       
         <h3 id="导语"><a href="#导语" class="headerlink" title="导语"></a>导语</h3><hr>
 <blockquote>
-<p> 在工作中，经常创建一些视图(比如button)，这时button很小，点击时，总感到不精准，有时我们会在这个小button上放一个大一点的透明button。但是有没有好烦燥呀。</p>
+<p>由于我们在项目中经常要与h5交互，最好可以对UIWebView有更多的了解。</p>
 </blockquote>
-<h4 id="分类介入UIView-ExtendTouchRect"><a href="#分类介入UIView-ExtendTouchRect" class="headerlink" title="分类介入UIView+ExtendTouchRect"></a>分类介入UIView+ExtendTouchRect</h4><p>写这个分类，是受到一篇blog的启发。在这里感谢他的作者，作者名我忘记了。<br>分类写好后，一行代码解决问题</p>
-<h4 id="使用代码"><a href="#使用代码" class="headerlink" title="使用代码"></a>使用代码</h4><pre><code>self.button.touchExtendInset = UIEdgeInsetsMake(-10, -10, -10, -10)
-</code></pre><h4 id="实现代码如下"><a href="#实现代码如下" class="headerlink" title="实现代码如下"></a>实现代码如下</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">void Swizzle(Class c, SEL orig, SEL new) &#123;  </span><br><span class="line">    Method origMethod = class_getInstanceMethod(c, orig);</span><br><span class="line">    Method newMethod = class_getInstanceMethod(c, new);</span><br><span class="line">    if (class_addMethod(c, orig, method_getImplementation(newMethod), method_getTypeEncoding(newMethod)))&#123;</span><br><span class="line">        class_replaceMethod(c, new, method_getImplementation(origMethod), method_getTypeEncoding(origMethod));</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        method_exchangeImplementations(origMethod, newMethod);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">@implementation UIView (ExtendTouchRect)</span><br><span class="line">+ (void)load &#123;</span><br><span class="line">    Swizzle(self, @selector(pointInside:withEvent:), @selector(myPointInside:withEvent:));</span><br><span class="line">&#125;</span><br><span class="line">- (BOOL)myPointInside:(CGPoint)point withEvent:(UIEvent *)event &#123;</span><br><span class="line">    if (UIEdgeInsetsEqualToEdgeInsets(self.touchExtendInset, UIEdgeInsetsZero) || self.hidden ||</span><br><span class="line">([self isKindOfClass:UIControl.class] &amp;&amp; !((UIControl *)self).enabled)) &#123;</span><br><span class="line">        return [self myPointInside:point withEvent:event]; // original implementation</span><br><span class="line">    &#125;</span><br><span class="line">    CGRect hitFrame = UIEdgeInsetsInsetRect(self.bounds, self.touchExtendInset);</span><br><span class="line">    hitFrame.size.width = MAX(hitFrame.size.width, 0); // don&apos;t allow negative sizes</span><br><span class="line">    hitFrame.size.height = MAX(hitFrame.size.height, 0);</span><br><span class="line">    return CGRectContainsPoint(hitFrame, point);</span><br><span class="line">&#125;</span><br><span class="line">static char touchExtendInsetKey;  </span><br><span class="line">- (void)setTouchExtendInset:(UIEdgeInsets)touchExtendInset &#123;</span><br><span class="line">    objc_setAssociatedObject(self, &amp;touchExtendInsetKey, [NSValue valueWithUIEdgeInsets:touchExtendInset],</span><br><span class="line">OBJC_ASSOCIATION_RETAIN);</span><br><span class="line">&#125;</span><br><span class="line">- (UIEdgeInsets)touchExtendInset &#123;</span><br><span class="line">    return [objc_getAssociatedObject(self, &amp;touchExtendInsetKey) UIEdgeInsetsValue];</span><br><span class="line">&#125;</span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+<h4 id="加载方法"><a href="#加载方法" class="headerlink" title="加载方法"></a>加载方法</h4><p>加载NSURL:</p>
+<pre><code>- (void)loadRequest:(NSURLRequest *)request;
+</code></pre><p>加载HTML字符串</p>
+<pre><code>- (void)loadHTMLString:(NSString *)string baseURL:(nullable NSURL *)baseURL;
+</code></pre><p>加载NSData</p>
+<pre><code>- (void)loadData:(NSData *)data MIMEType:(NSString *)MIMEType textEncodingName:(NSString *)textEncodingName baseURL:(NSURL *)baseURL;
+</code></pre><p>如果HTML存在本地文件中，则可以用file://url 调用loadRequest方法加载</p>
+<h4 id="移除滚动后的外边阴影"><a href="#移除滚动后的外边阴影" class="headerlink" title="移除滚动后的外边阴影"></a>移除滚动后的外边阴影</h4><p>UIWebView包含一个scrollView组件，用来将关联web内容实现滚动效果，页面滚动后的UIWebView的面板周围会出现阴影效果，该效果是在四周添加UIImageView实现的，因此移除这种阴影效果的代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">UIScrollView *scrollView = webView.scrollView;                         </span><br><span class="line">for (int i = 0; i &lt; scrollView.subviews.count ; i++) &#123;              </span><br><span class="line">    UIView *view = [scrollView.subviews objectAtIndex:i];</span><br><span class="line">    if ([view isKindOfClass:[UIImageView class]]) &#123;</span><br><span class="line">        view.hidden = YES ;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="UIWebViewDelegate-关键的两个："><a href="#UIWebViewDelegate-关键的两个：" class="headerlink" title="UIWebViewDelegate 关键的两个："></a>UIWebViewDelegate 关键的两个：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType;</span><br><span class="line">- (void)webViewDidFinishLoad:(UIWebView *)webView;</span><br></pre></td></tr></table></figure>
+<h3 id="调用javascript代码，由UIWebView提供"><a href="#调用javascript代码，由UIWebView提供" class="headerlink" title="调用javascript代码，由UIWebView提供"></a>调用javascript代码，由UIWebView提供</h3><pre><code>- (NSString *)stringByEvaluatingJavaScriptFromString:(NSString *)script
+</code></pre><p>参数script中传入要执行的js代码字符串，结果以字符串形式返回。代码如下</p>
+<h4 id="取web页面的标题"><a href="#取web页面的标题" class="headerlink" title="取web页面的标题"></a>取web页面的标题</h4><pre><code>NSString *title = [webView stringByEvaluatingJavaScriptFromString:@&quot;document.title&quot;];
+</code></pre><h4 id="长按web页面中的各种效果"><a href="#长按web页面中的各种效果" class="headerlink" title="长按web页面中的各种效果"></a>长按web页面中的各种效果</h4><ul>
+<li><p>默认情况下，长按web页中的链接，系统会自动呼出菜单提供open,copy和cancel选项<br>1.取消这种效果，在代理方法webViewDidFinisheLoad中使用：</p>
+<p>  [webView stringByEvaluatingJavaScriptFromString:@”document.documentElement.style.webkitTouchCallout=’none’;”];<br>2.点链接从saifir加载</p>
+<ul>
+<li>(BOOL)webView:(UIWebView <em>)webView shouldStartLoadWithRequest:(NSURLRequest </em>)request navigationType:(UIWebViewNavigationType)navigationType<br>它的返回值用以控制是否允许加载目标链接页面的内容，UIWebViewNavigationType枚举定义了页面中用户行为的分类</li>
+</ul>
+</li>
+<li><p>UIWebViewNavigationTypeLinkClicked，用户触击了一个链接。</p>
+</li>
+<li>UIWebViewNavigationTypeFormSubmitted，用户提交了一个表单。</li>
+<li>UIWebViewNavigationTypeBackForward，用户触击前进或返回按钮。</li>
+<li>UIWebViewNavigationTypeReload，用户触击重新加载的按钮。</li>
+<li>UIWebViewNavigationTypeFormResubmitted，用户重复提交表单</li>
+<li>UIWebViewNavigationTypeOther，发生其它行为。<br>因此在方法中，代码如下：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">if ( navigationType == UIWebViewNavigationTypeLinkClicked ) &#123;</span><br><span class="line">    [[UIApplication sharedApplication] openURL:[request URL]];</span><br><span class="line">    return NO;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>默认情况下在页面元素中进行长按操作，会弹出菜单，来允许进行选择行为。禁用此行为代码在代理方法webViewDidFinisheLoad中使用:</p>
+<p>  [webView stringByEvaluatingJavaScriptFromString:@”document.documentElement.style.webkitUserSelect=’none’;”];</p>
+</li>
+</ul>
+<h4 id="一些常用属性"><a href="#一些常用属性" class="headerlink" title="一些常用属性"></a>一些常用属性</h4><ul>
+<li>scalesPageToFit属性. 设为YES UIWebView可以缩放HTML页面来适配其视口大小，从而达到整屏显示内容的效果，并且用户可以用捏合动作来放大或缩小页面来查看内容。设为NO的话可以禁用缩放</li>
+<li>detectsPhoneNumbers。默认是YES 自动检测网页上的电话号码，单击可以拨打</li>
+<li>为webView添加背景图片：backgroundColor = [UIColor clearColor] opaque = NO 设为透明的，然后再在webView下添加一个UIImageView展示即可。</li>
+</ul>
+<h4 id="常调用的JS-但都需要在网页内容加载完成后才可以"><a href="#常调用的JS-但都需要在网页内容加载完成后才可以" class="headerlink" title="- 常调用的JS 但都需要在网页内容加载完成后才可以"></a>- 常调用的JS 但都需要在网页内容加载完成后才可以</h4><p>```<br>//获取web页面内容信息，此处获取的是个json字符串<br>NSString *docStr=[webView stringByEvaluatingJavaScriptFromString:@”document.documentElement.textContent”];<br>//取消长按webView上的链接弹出actionSheet的问题：<br>[webView stringByEvaluatingJavaScriptFromString:@”document.documentElement.style.webkitTouchCallout = ‘none’;”];<br>// 获取UIWebView的合适高度，<br>[webview stringByEvaluatingJavaScriptFromString:@”document.body.scrollHeight;”];<br>// 取消页面元素中进行长按操作<br>[webView stringByEvaluatingJavaScriptFromString:@”document.documentElement.style.webkitUserSelect=’none’;”];</p>
 
       
     </div>
@@ -363,17 +412,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/05/10/浅谈对象组合和继承/" rel="next" title="浅谈对象组合和继承">
-                <i class="fa fa-chevron-left"></i> 浅谈对象组合和继承
+              <a href="/2016/05/11/iOS网络错误处理/" rel="next" title="iOS网络错误处理">
+                <i class="fa fa-chevron-left"></i> iOS网络错误处理
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/05/11/iOS网络性能优化/" rel="prev" title="iOS网络性能优化">
-                iOS网络性能优化 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -388,10 +433,10 @@
 
     <div class="post-spread">
       
-        <div class="ds-share flat" data-thread-key="2016/05/10/扩大视图点击区域/"
-     data-title="扩大视图点击区域"
+        <div class="ds-share flat" data-thread-key="2016/05/11/UIWebView用法的一些总结/"
+     data-title="UIWebView用法的一些总结"
      data-content=""
-     data-url="https://github.com/q195945056/2016/05/10/扩大视图点击区域/">
+     data-url="https://github.com/q195945056/2016/05/11/UIWebView用法的一些总结/">
   <div class="ds-share-inline">
     <ul  class="ds-share-icons-16">
 
@@ -418,8 +463,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/05/10/扩大视图点击区域/"
-           data-title="扩大视图点击区域" data-url="https://github.com/q195945056/2016/05/10/扩大视图点击区域/">
+      <div class="ds-thread" data-thread-key="2016/05/11/UIWebView用法的一些总结/"
+           data-title="UIWebView用法的一些总结" data-url="https://github.com/q195945056/2016/05/11/UIWebView用法的一些总结/">
       </div>
     
   </div>
@@ -510,7 +555,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#导语"><span class="nav-number">1.</span> <span class="nav-text">导语</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#分类介入UIView-ExtendTouchRect"><span class="nav-number">1.1.</span> <span class="nav-text">分类介入UIView+ExtendTouchRect</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用代码"><span class="nav-number">1.2.</span> <span class="nav-text">使用代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#实现代码如下"><span class="nav-number">1.3.</span> <span class="nav-text">实现代码如下</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#导语"><span class="nav-number">1.</span> <span class="nav-text">导语</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#加载方法"><span class="nav-number">1.1.</span> <span class="nav-text">加载方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#移除滚动后的外边阴影"><span class="nav-number">1.2.</span> <span class="nav-text">移除滚动后的外边阴影</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#UIWebViewDelegate-关键的两个："><span class="nav-number">2.</span> <span class="nav-text">UIWebViewDelegate 关键的两个：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调用javascript代码，由UIWebView提供"><span class="nav-number">3.</span> <span class="nav-text">调用javascript代码，由UIWebView提供</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#取web页面的标题"><span class="nav-number">3.1.</span> <span class="nav-text">取web页面的标题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#长按web页面中的各种效果"><span class="nav-number">3.2.</span> <span class="nav-text">长按web页面中的各种效果</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#一些常用属性"><span class="nav-number">3.3.</span> <span class="nav-text">一些常用属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#常调用的JS-但都需要在网页内容加载完成后才可以"><span class="nav-number">3.4.</span> <span class="nav-text">- 常调用的JS 但都需要在网页内容加载完成后才可以</span></a></li></ol></li></ol></div>
             
           </div>
         </section>
