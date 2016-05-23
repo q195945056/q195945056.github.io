@@ -92,15 +92,15 @@
 <meta property="og:site_name" content="ADH">
 <meta property="og:description" content="什么是Automatic Reference Counting？Automatic Reference Counting(ARC)是一个编译器特性，它为Objective-C对象提供自动内存管理机制。相比手动地retain/release，ARC让你专注于其它代码，而不需要再考虑retain/release。下图显示了ARC和非ARC的区别。
 启用 ARC之后,编译器会自动在适当的地方插入适当的">
-<meta property="og:image" content="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/ARC_Illustration.jpg">
-<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1778459-a4442a2fc388656b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
-<meta property="og:image" content="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/fno-objc-arc.png">
-<meta property="og:updated_time" content="2016-05-23T02:08:13.000Z">
+<meta property="og:image" content="https://github.com/q195945056/uploads/images/ARC_Illustration.jpg">
+<meta property="og:image" content="https://github.com/q195945056/uploads/images/1778459-a4442a2fc388656b.jpeg">
+<meta property="og:image" content="https://github.com/q195945056/uploads/images/fno-objc-arc.png">
+<meta property="og:updated_time" content="2016-05-23T02:13:49.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ARC编程指南">
 <meta name="twitter:description" content="什么是Automatic Reference Counting？Automatic Reference Counting(ARC)是一个编译器特性，它为Objective-C对象提供自动内存管理机制。相比手动地retain/release，ARC让你专注于其它代码，而不需要再考虑retain/release。下图显示了ARC和非ARC的区别。
 启用 ARC之后,编译器会自动在适当的地方插入适当的">
-<meta name="twitter:image" content="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/ARC_Illustration.jpg">
+<meta name="twitter:image" content="https://github.com/q195945056/uploads/images/ARC_Illustration.jpg">
 
 
 
@@ -324,7 +324,7 @@
       
 
       
-        <h1 id="什么是Automatic-Reference-Counting？"><a href="#什么是Automatic-Reference-Counting？" class="headerlink" title="什么是Automatic Reference Counting？"></a>什么是Automatic Reference Counting？</h1><p>Automatic Reference Counting(ARC)是一个编译器特性，它为Objective-C对象提供自动内存管理机制。相比手动地retain/release，ARC让你专注于其它代码，而不需要再考虑retain/release。下图显示了ARC和非ARC的区别。<br><img src="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/ARC_Illustration.jpg" alt=""></p>
+        <h1 id="什么是Automatic-Reference-Counting？"><a href="#什么是Automatic-Reference-Counting？" class="headerlink" title="什么是Automatic Reference Counting？"></a>什么是Automatic Reference Counting？</h1><p>Automatic Reference Counting(ARC)是一个编译器特性，它为Objective-C对象提供自动内存管理机制。相比手动地retain/release，ARC让你专注于其它代码，而不需要再考虑retain/release。下图显示了ARC和非ARC的区别。<br><img src="/uploads/images/ARC_Illustration.jpg" alt=""></p>
 <p>启用 ARC之后,编译器会自动在适当的地方插入适当的 retain, release,autorelease 语句。你不再需要担心内存管理,因为编译器为你处理了一切。</p>
 <p>在使用<strong><em>toll-free bridging</em></strong>的时候，为了让编译器能插入正确的代码，ARC做了一些限制。ARC还引进了新的生命周期修饰符。</p>
 <p>ARC支持Xcode 4.2、OS X v10.6、iOS 4。但是weak指针在OS X v10.6和iOS4中不支持。</p>
@@ -424,7 +424,7 @@ if (!OK) {
     // Report the error.
     // ...
 </code></pre><p>局部变量的定义(<code>__strong</code>)和参数(<code>__autoreleasing</code>)不符，导致编译器创建了一个临时变量。当你传一个<code>__strong</code>变量作为参数的时候，你可以把函数的参数类型定义个城<code>id __strong *</code>，或者你可以把这个变量定义成<code>__autoreleasing</code>。</p>
-<h5 id="使用生命周期限定符来避免Strong-Reference-Cycles"><a href="#使用生命周期限定符来避免Strong-Reference-Cycles" class="headerlink" title="使用生命周期限定符来避免Strong Reference Cycles"></a>使用生命周期限定符来避免Strong Reference Cycles</h5><p>你可以使用生命周期限定符来避免strong reference cycles。例如，两个对象互相 retain 时,会导致两个对象都无法被释放,这也是内存泄漏的常见原因之一。然后你可以把其中一个指针定义成weak，来打破循环。其它情况可能更微妙一些，特别是调用block对象的时候。<br><img src="http://upload-images.jianshu.io/upload_images/1778459-a4442a2fc388656b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""><br>在手动引用计数模式下，<code>__block id x;</code>可以不retaining<code>x</code>。在ARC模式下，<code>__block id x;</code>默认会retaining<code>x</code>（就像其它变量一样）。为了在ARC中获得手动引用计数一样的效果，你可以使用<code>__unsafe_unretained __block id x;</code>。像它的名字一样，有一个<em>non-retained</em>对象是很危险的（因为它可能变成野指针），因此不鼓励这么做。两种不同的选择是使用<code>__weak</code>（如果你不需要支持iOS 4或OS X v10.6），或者把这个<code>__block</code>值设置成nil来打断<em>retain cycle</em>.<br>下面的代码片段使用手动引用计数有时使用的一个模式来说明这个问题。</p>
+<h5 id="使用生命周期限定符来避免Strong-Reference-Cycles"><a href="#使用生命周期限定符来避免Strong-Reference-Cycles" class="headerlink" title="使用生命周期限定符来避免Strong Reference Cycles"></a>使用生命周期限定符来避免Strong Reference Cycles</h5><p>你可以使用生命周期限定符来避免strong reference cycles。例如，两个对象互相 retain 时,会导致两个对象都无法被释放,这也是内存泄漏的常见原因之一。然后你可以把其中一个指针定义成weak，来打破循环。其它情况可能更微妙一些，特别是调用block对象的时候。<br><img src="/uploads/images/1778459-a4442a2fc388656b.jpeg" alt=""><br>在手动引用计数模式下，<code>__block id x;</code>可以不retaining<code>x</code>。在ARC模式下，<code>__block id x;</code>默认会retaining<code>x</code>（就像其它变量一样）。为了在ARC中获得手动引用计数一样的效果，你可以使用<code>__unsafe_unretained __block id x;</code>。像它的名字一样，有一个<em>non-retained</em>对象是很危险的（因为它可能变成野指针），因此不鼓励这么做。两种不同的选择是使用<code>__weak</code>（如果你不需要支持iOS 4或OS X v10.6），或者把这个<code>__block</code>值设置成nil来打断<em>retain cycle</em>.<br>下面的代码片段使用手动引用计数有时使用的一个模式来说明这个问题。</p>
 <pre><code>MyViewController *myController = [[MyViewController alloc] init…];
 // ...
 myController.completionHandler =  ^(NSInteger result) {
@@ -608,7 +608,7 @@ free(dynamicArray);
 <h3 id="ARC在ObjC-模式下能工作吗？"><a href="#ARC在ObjC-模式下能工作吗？" class="headerlink" title="ARC在ObjC++模式下能工作吗？"></a>ARC在ObjC++模式下能工作吗？</h3><p>是的。你也可以把<em>strong/weak</em>对象放在类和容器里面。<strong>ARC</strong>编译器在拷贝构造函数和析构函数中自动生成<em>retain/release</em>逻辑。</p>
 <h3 id="哪些类不支持weak引用？"><a href="#哪些类不支持weak引用？" class="headerlink" title="哪些类不支持weak引用？"></a>哪些类不支持<em>weak</em>引用？</h3><p>目前你不能创建下面类的<em>weak</em>引用：<br><strong>NSATSTypesetter</strong>, <strong>NSColorSpace</strong>, <strong>NSFon</strong>t, <strong>NSMenuView</strong>, <strong>NSParagraphStyle</strong>, <strong>NSSimpleHorizontalTypesetter</strong>, and <strong>NSTextView</strong>.<br>注意：另外，在OS X v10.7下，你不能创建<strong>NSFontManager</strong>, <strong>NSFontPanel</strong>, <strong>NSImage</strong>, <strong>NSTableCellView</strong>, <strong>NSViewController</strong>, <strong>NSWindow</strong>, 和 <strong>NSWindowController</strong>的<em>weak</em>引用。还有，在OS X v10.7下<strong>AVFoundation</strong>框架下的类都不支持weak引用。<br>定义属性的时候，你应该用<code>assign</code>来代替<code>weak</code>；对于变量，你应该使用<code>__unsafe_unretained</code>代替<code>__weak</code>。<br>另外，在ARC下你不能创建<strong>NSHashTable</strong>,<strong>NSMapTable</strong>,或<strong>NSPointerArray</strong>的<em>weak</em>引用。</p>
 <p>###当子类化NSCell或其它类时使用<code>NSCopyObject</code>我需要怎么做？<br>没有特别需要注意的。<strong>ARC</strong>代替你来处理以前需要额外显示地<em>retain</em>的地方。在<strong>ARC</strong>下，所有的copy方法应该只在实例变量上copy。</p>
-<p>###我能指定部分文件用ARC编译吗？<br>可以。<br>当你迁移一个工程到<strong>ARC</strong>,默认所有的<strong>Objective-C</strong>文件都被设置了<em>-fobjc-arc</em>编译标志。你可以用<em> -fno-objc-arc</em>来为部分类禁用<strong>ARC</strong>。在Xcode里，在target的<strong>Build Phases</strong>标签，打开<strong>Compile Sources</strong>组来<br>浏览源文件列表。双击你想设置的文件，在弹出的框中输入<code>-fno-objc-arc</code>，然后点击<strong>Done</strong>。<br><img src="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/fno-objc-arc.png" alt=""></p>
+<p>###我能指定部分文件用ARC编译吗？<br>可以。<br>当你迁移一个工程到<strong>ARC</strong>,默认所有的<strong>Objective-C</strong>文件都被设置了<em>-fobjc-arc</em>编译标志。你可以用<em> -fno-objc-arc</em>来为部分类禁用<strong>ARC</strong>。在Xcode里，在target的<strong>Build Phases</strong>标签，打开<strong>Compile Sources</strong>组来<br>浏览源文件列表。双击你想设置的文件，在弹出的框中输入<code>-fno-objc-arc</code>，然后点击<strong>Done</strong>。<br><img src="/uploads/images/fno-objc-arc.png" alt=""></p>
 <h3 id="GC（垃圾回收）在Mac被弃用了吗？"><a href="#GC（垃圾回收）在Mac被弃用了吗？" class="headerlink" title="GC（垃圾回收）在Mac被弃用了吗？"></a>GC（垃圾回收）在Mac被弃用了吗？</h3><p>垃圾回收在<strong>OS X Mountain Lion v10.8</strong>中被弃用了，并且将会在将来的OS X版本中被删除。自动引用计数是推荐的替换技术。为了帮助迁移已有的应用，Xcode 4.3和之后的<strong>ARC</strong>迁移工具支持把OS X程序中的垃圾回收迁移到<strong>ARC</strong>。</p>
 <blockquote>
 <p>注意：对于<strong>Mac App Store</strong>上的应用，苹果强烈推荐尽可能地用<strong>ARC</strong>替换垃圾回收机制，因为<strong>Mac App Store</strong>指南（查看App Store Review Guidelines for Mac Apps）禁止使用弃用的技术。</p>
