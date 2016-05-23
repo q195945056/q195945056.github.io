@@ -95,7 +95,7 @@
 <meta property="og:image" content="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/ARC_Illustration.jpg">
 <meta property="og:image" content="http://upload-images.jianshu.io/upload_images/1778459-a4442a2fc388656b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 <meta property="og:image" content="https://developer.apple.com/library/ios/releasenotes/ObjectiveC/RN-TransitioningToARC/Art/fno-objc-arc.png">
-<meta property="og:updated_time" content="2016-05-23T02:05:11.000Z">
+<meta property="og:updated_time" content="2016-05-23T02:08:13.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ARC编程指南">
 <meta name="twitter:description" content="什么是Automatic Reference Counting？Automatic Reference Counting(ARC)是一个编译器特性，它为Objective-C对象提供自动内存管理机制。相比手动地retain/release，ARC让你专注于其它代码，而不需要再考虑retain/release。下图显示了ARC和非ARC的区别。
@@ -334,13 +334,31 @@
 </blockquote>
 <h1 id="ARC-简介"><a href="#ARC-简介" class="headerlink" title="ARC 简介"></a>ARC 简介</h1><p>使用ARC，你不需要记住什么使用<code>retain</code>、<code>release</code>、<code>autorelease</code>，ARC会自动处理对象的声明周期，编译的时候在合适的地方插入内存管理代码。一般而言，只有当你需要和手动引用计数代码交互的时候，传统的<strong>Cocoa</strong>命名规则才是重要的。</p>
 <p>一个完整正确的<code>Person</code>类的定义可能看起来像这样： </p>
-<p>@interface Person : NSObject<br>@property NSString <em>firstName;<br>@property NSString </em>lastName;<br>@property NSNumber <em>yearOfBirth;<br>@property Person </em>spouse;<br>@end</p>
-<p>@implementation Person<br>@end<br>(对象的属性默认是strong，strong的含义会在下面讲到)</p>
+<pre><code>@interface Person : NSObject
+@property NSString *firstName;
+@property NSString *lastName;
+@property NSNumber *yearOfBirth;
+@property Person *spouse;
+@end
+
+@implementation Person
+@end
+</code></pre><p>(对象的属性默认是strong，strong的含义会在下面讲到)</p>
 <p>使用ARC，你可以像这样定义个一个<code>contrived</code>方法：</p>
-<ul>
-<li>(void)contrived {<br>Person *aPerson = [[Person alloc] init];<br>[aPerson setFirstName:@”William”];<br>[aPerson setLastName:@”Dudney”];<br>[aPerson setYearOfBirth:[[NSNumber alloc] initWithInteger:2011]];<br>NSLog(@”aPerson: %@”, aPerson);<br>}<br>ARC处理内存管理，所以<code>Person</code>对象和<code>NSNumber</code>对象都不会内存泄漏。<br>你还可以像这样安全地给<code>Person</code>类定义个一个<code>takeLastNameFrom</code>方法:</li>
-<li>(void)takeLastNameFrom:(Person <em>)person {<br>NSString </em>oldLastname = [self lastName];<br>[self setLastName:[person lastName]];<br>NSLog(@”Lastname changed from %@ to %@”, oldLastname, [self lastName]);<br>}<br>ARC可以确保在<code>NSLog</code>执行之前<code>oldLastname</code>不会被释放。</li>
-</ul>
+<pre><code>- (void)contrived {
+    Person *aPerson = [[Person alloc] init];
+    [aPerson setFirstName:@&quot;William&quot;];
+    [aPerson setLastName:@&quot;Dudney&quot;];
+    [aPerson setYearOfBirth:[[NSNumber alloc] initWithInteger:2011]];
+    NSLog(@&quot;aPerson: %@&quot;, aPerson);
+}
+</code></pre><p>ARC处理内存管理，所以<code>Person</code>对象和<code>NSNumber</code>对象都不会内存泄漏。<br>你还可以像这样安全地给<code>Person</code>类定义个一个<code>takeLastNameFrom</code>方法:</p>
+<pre><code>- (void)takeLastNameFrom:(Person *)person {
+    NSString *oldLastname = [self lastName];
+    [self setLastName:[person lastName]];
+    NSLog(@&quot;Lastname changed from %@ to %@&quot;, oldLastname, [self lastName]);
+}
+</code></pre><p>ARC可以确保在<code>NSLog</code>执行之前<code>oldLastname</code>不会被释放。</p>
 <h3 id="ARC使用新的规则"><a href="#ARC使用新的规则" class="headerlink" title="ARC使用新的规则"></a>ARC使用新的规则</h3><p>ARC引进了新的规则。这些规则旨在为ARC提供可靠的内存管理模型。在一些情况下，它们只是采取最好的做法。在另外一些情况下，它简化你的代码，或者明显地告诉你你不需要处理内存管理。如果你违反了这些规则，你会得到一个编译错误，而不是运行时错误。</p>
 <ul>
 <li>你不能显式地调用<code>dealloc</code>方法，也不能定义或者调用<code>retain</code>、<code>release</code>、<code>retainCount</code>、<code>autorelease</code>方法。<br>禁止使用<code>@selector(retain)</code>、<code>@selector(release)</code>等灯</li>
@@ -351,14 +369,25 @@
 <li>你不能使用内存<code>zones</code>。<br>没有必要使用<code>NSZone</code>了，它们会被<strong>modern Objective-C runtime</strong>忽略掉。</li>
 </ul>
 <p>为了允许和手动retain-release代码交互，ARC限制了方法命名：<br>你不能给属性起一个以new开头的名字。反过来说，除非你指定一个不同的<code>getter</code>方法，否则你不能定义一个new开头的属性</p>
-<p>// Won’t work:<br>@property NSString *newTitle;</p>
-<p>// Works:<br>@property (getter=theNewTitle) NSString *newTitle;</p>
-<p>方法也是一样，如果你在<code>Person</code>类中写了一个叫<code>newPersonName</code>的方法，编译器会假设这个方法返回一个新分配的对象。如果你的代码只在<strong>ARC</strong>下，或者非<strong>ARC</strong>下运行，不会有什么问题。但是如果你使用<strong>ARC</strong>和非<strong>ARC</strong>混编，就会出现问题。如果定义这个方法的类用非<strong>ARC</strong>编译，但是调用代码用<strong>ARC</strong>编译，你的程序会崩溃；相反，如果定义这个方法的类用<strong>ARC</strong>编译，调用代码用非<strong>ARC</strong>编译，就会发生内存泄漏。<br>虽然你不能改变编译器的行为，但是可以用<em>clang</em>宏<code>NS_RETURNS_NOT_RETAINED</code>和<code>NS_RETURNS_RETAINED</code>来改变方法的行为。你的<code>newPersonName</code>可以像下面那样申明，来让它返回一个不被retain的对象。</p>
-<ul>
-<li>(NSString <em>) newPersonName NS_RETURNS_NOT_RETAINED;<br>但是不推荐这种方法，你可以为方法起一个不同的名字，比如`- (NSString </em>) personName;`。但是，如果方法定义在静态库里，你没法修改源码，你可以用这两个<em>clang</em>宏。<h4 id="ARC引进了新的生命周期限定符"><a href="#ARC引进了新的生命周期限定符" class="headerlink" title="ARC引进了新的生命周期限定符"></a>ARC引进了新的生命周期限定符</h4>ARC为对象和肉引用引进了一些新的生命周期限定符。weak指针不会拥有对象，并且当没有其它strong指针指向这个对象的时候，weak指针会自动置为<code>nil</code>。<br>你应该充分利用这些限定符来管理你的程序中的对象。特别提到一点，ARC不会<br>警告<strong><em>strong reference cycles</em></strong>（通常被叫做retain cycles）。恰当地使用weak关系可以帮你避免cycles。<h5 id="Property属性"><a href="#Property属性" class="headerlink" title="Property属性"></a>Property属性</h5>属性新增加了weak和strong关键字，如下面的例子所示。</li>
-</ul>
-<p>// 下面的定义和这个是同义词: @property(retain) MyClass <em>myObject;<br>@property(strong) MyClass </em>myObject;</p>
-<p>// 下面的定义和”@property(assign) MyClass <em>myObject;”类似<br>// 但是有一点不同，如果myObject指向的对象被释放了，属性会自动置为nil，而不是变成野指针。<br>@property(weak) MyClass </em>myObject;<br>在ARC下，默认的对象类型是strong。</p>
+<pre><code>// Won&apos;t work:
+@property NSString *newTitle;
+
+// Works:
+@property (getter=theNewTitle) NSString *newTitle;
+</code></pre><p>方法也是一样，如果你在<code>Person</code>类中写了一个叫<code>newPersonName</code>的方法，编译器会假设这个方法返回一个新分配的对象。如果你的代码只在<strong>ARC</strong>下，或者非<strong>ARC</strong>下运行，不会有什么问题。但是如果你使用<strong>ARC</strong>和非<strong>ARC</strong>混编，就会出现问题。如果定义这个方法的类用非<strong>ARC</strong>编译，但是调用代码用<strong>ARC</strong>编译，你的程序会崩溃；相反，如果定义这个方法的类用<strong>ARC</strong>编译，调用代码用非<strong>ARC</strong>编译，就会发生内存泄漏。<br>虽然你不能改变编译器的行为，但是可以用<em>clang</em>宏<code>NS_RETURNS_NOT_RETAINED</code>和<code>NS_RETURNS_RETAINED</code>来改变方法的行为。你的<code>newPersonName</code>可以像下面那样申明，来让它返回一个不被retain的对象。</p>
+<pre><code>- (NSString *) newPersonName NS_RETURNS_NOT_RETAINED;
+</code></pre><p>但是不推荐这种方法，你可以为方法起一个不同的名字，比如<code>- (NSString *) personName;</code>。但是，如果方法定义在静态库里，你没法修改源码，你可以用这两个<em>clang</em>宏。</p>
+<h4 id="ARC引进了新的生命周期限定符"><a href="#ARC引进了新的生命周期限定符" class="headerlink" title="ARC引进了新的生命周期限定符"></a>ARC引进了新的生命周期限定符</h4><p>ARC为对象和肉引用引进了一些新的生命周期限定符。weak指针不会拥有对象，并且当没有其它strong指针指向这个对象的时候，weak指针会自动置为<code>nil</code>。<br>你应该充分利用这些限定符来管理你的程序中的对象。特别提到一点，ARC不会<br>警告<strong><em>strong reference cycles</em></strong>（通常被叫做retain cycles）。恰当地使用weak关系可以帮你避免cycles。</p>
+<h5 id="Property属性"><a href="#Property属性" class="headerlink" title="Property属性"></a>Property属性</h5><p>属性新增加了weak和strong关键字，如下面的例子所示。</p>
+<pre><code> // 下面的定义和这个是同义词: @property(retain) MyClass *myObject;
+@property(strong) MyClass *myObject;
+
+
+
+// 下面的定义和&quot;@property(assign) MyClass *myObject;&quot;类似
+// 但是有一点不同，如果myObject指向的对象被释放了，属性会自动置为nil，而不是变成野指针。
+@property(weak) MyClass *myObject;
+</code></pre><p>在ARC下，默认的对象类型是strong。</p>
 <h5 id="变量限定符"><a href="#变量限定符" class="headerlink" title="变量限定符"></a>变量限定符</h5><p>你使用下面的生命周期限定符来修饰变量。</p>
 <ul>
 <li><code>__strong</code></li>
@@ -371,80 +400,210 @@
 <p>ClassName * qualifier variableName;</p>
 </blockquote>
 <p>举个例子:</p>
-<p>MyClass <em> __weak myWeakReference;<br>MyClass </em> <strong>unsafe_unretained myUnsafeReference;<br>一些其它的变体在技术上讲是错误的，但是可以被编译器允许。想了解的话，查看<a href="http://cdecl.org/" target="_blank" rel="external"></a>。<br>在栈中使用`</strong>weak`变量的时候要注意。考虑下面的例子：</p>
-<p>NSString * __weak string = [[NSString alloc] initWithFormat:@”First Name: %@”, [self firstName]];<br>NSLog(@”string: %@”, string);<br>尽管string在初始化赋值之后就用到了，但是在赋值执行的时候，没有其它strong引用指向这个string；它马上被释放了。log语句显式string的值是null。（编译器在这种情况下会有一个警告）。<br>你还需要考虑对象以引用传递的情况。下面的代码会工作：</p>
-<p>NSError *error;<br>BOOL OK = [myObject performOperationWithError:&amp;error];<br>if (!OK) {<br>// Report the error.<br>// …<br>然而，<code>error</code>变量的定义是隐式地：</p>
-<p>NSError * __strong e;<br>这个方法的定义个一般可能是这样：</p>
-<p>-(BOOL)performOperationWithError:(NSError <em> __autoreleasing </em>)error;<br>编译器会重新生成代码：</p>
-<p>NSError <em> __strong error;<br>NSError </em> <strong>autoreleasing tmp = error;<br>BOOL OK = [myObject performOperationWithError:&amp;tmp];<br>error = tmp;<br>if (!OK) {<br>// Report the error.<br>// …<br>局部变量的定义(`</strong>strong<code>)和参数(</code><strong>autoreleasing <code>)不符，导致编译器创建了一个临时变量。当你传一个</code></strong>strong <code>变量作为参数的时候，你可以把函数的参数类型定义个城</code>id <strong>strong *<code>，或者你可以把这个变量定义成</code></strong>autoreleasing`。</p>
+<pre><code>MyClass * __weak myWeakReference;
+MyClass * __unsafe_unretained myUnsafeReference;
+</code></pre><p>一些其它的变体在技术上讲是错误的，但是可以被编译器允许。想了解的话，查看<a href="http://cdecl.org/" target="_blank" rel="external"></a>。<br>在栈中使用<code>__weak</code>变量的时候要注意。考虑下面的例子：</p>
+<pre><code>NSString * __weak string = [[NSString alloc] initWithFormat:@&quot;First Name: %@&quot;, [self firstName]];
+NSLog(@&quot;string: %@&quot;, string);
+</code></pre><p>尽管string在初始化赋值之后就用到了，但是在赋值执行的时候，没有其它strong引用指向这个string；它马上被释放了。log语句显式string的值是null。（编译器在这种情况下会有一个警告）。<br>你还需要考虑对象以引用传递的情况。下面的代码会工作：</p>
+<pre><code>NSError *error;
+BOOL OK = [myObject performOperationWithError:&amp;error];
+if (!OK) {
+    // Report the error.
+    // ...
+</code></pre><p>然而，<code>error</code>变量的定义是隐式地：</p>
+<pre><code>NSError * __strong e;
+</code></pre><p>这个方法的定义个一般可能是这样：</p>
+<pre><code>-(BOOL)performOperationWithError:(NSError * __autoreleasing *)error;
+</code></pre><p>编译器会重新生成代码：</p>
+<pre><code>NSError * __strong error;
+NSError * __autoreleasing tmp = error;
+BOOL OK = [myObject performOperationWithError:&amp;tmp];
+error = tmp;
+if (!OK) {
+    // Report the error.
+    // ...
+</code></pre><p>局部变量的定义(<code>__strong</code>)和参数(<code>__autoreleasing</code>)不符，导致编译器创建了一个临时变量。当你传一个<code>__strong</code>变量作为参数的时候，你可以把函数的参数类型定义个城<code>id __strong *</code>，或者你可以把这个变量定义成<code>__autoreleasing</code>。</p>
 <h5 id="使用生命周期限定符来避免Strong-Reference-Cycles"><a href="#使用生命周期限定符来避免Strong-Reference-Cycles" class="headerlink" title="使用生命周期限定符来避免Strong Reference Cycles"></a>使用生命周期限定符来避免Strong Reference Cycles</h5><p>你可以使用生命周期限定符来避免strong reference cycles。例如，两个对象互相 retain 时,会导致两个对象都无法被释放,这也是内存泄漏的常见原因之一。然后你可以把其中一个指针定义成weak，来打破循环。其它情况可能更微妙一些，特别是调用block对象的时候。<br><img src="http://upload-images.jianshu.io/upload_images/1778459-a4442a2fc388656b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""><br>在手动引用计数模式下，<code>__block id x;</code>可以不retaining<code>x</code>。在ARC模式下，<code>__block id x;</code>默认会retaining<code>x</code>（就像其它变量一样）。为了在ARC中获得手动引用计数一样的效果，你可以使用<code>__unsafe_unretained __block id x;</code>。像它的名字一样，有一个<em>non-retained</em>对象是很危险的（因为它可能变成野指针），因此不鼓励这么做。两种不同的选择是使用<code>__weak</code>（如果你不需要支持iOS 4或OS X v10.6），或者把这个<code>__block</code>值设置成nil来打断<em>retain cycle</em>.<br>下面的代码片段使用手动引用计数有时使用的一个模式来说明这个问题。</p>
-<p>MyViewController *myController = [[MyViewController alloc] init…];<br>// …<br>myController.completionHandler =  ^(NSInteger result) {<br>[myController dismissViewControllerAnimated:YES completion:nil];<br>};<br>[self presentViewController:myController animated:YES completion:^{<br>[myController release];<br>}];<br>像上面讲的那样，你可以用一个<code>__block</code>限定符，然后在<code>completion handler</code>把<code>myController</code>变量设置成nil：</p>
-<p>MyViewController * <strong>block myController = [[MyViewController alloc] init…];<br>// …<br>myController.completionHandler =  ^(NSInteger result) {<br>[myController dismissViewControllerAnimated:YES completion:nil];<br>myController = nil;<br>};<br>或者你可以用`</strong>weak`临时变量。下面的例子显示了一个简单的定义：</p>
-<p>MyViewController <em>myController = [[MyViewController alloc] init…];<br>// …<br>MyViewController </em> __weak weakMyViewController = myController;<br>myController.completionHandler =  ^(NSInteger result) {<br>[weakMyViewController dismissViewControllerAnimated:YES completion:nil];<br>};<br>前面讲到weak指针，没有其它strong指针指向对象的时候会自动置为nil，为了保证block执行期间对象不被释放（<strong>可能在其它线程中被释放</strong>），你应该这么做：</p>
-<p>MyViewController <em>myController = [[MyViewController alloc] init…];<br>// …<br>MyViewController </em> <strong>weak weakMyController = myController;<br>myController.completionHandler =  ^(NSInteger result) {<br>MyViewController *strongMyController = weakMyController;<br>if (strongMyController) {<br>// …<br>[strongMyController dismissViewControllerAnimated:YES completion:nil];<br>// …<br>}<br>else {<br>// Probably nothing…<br>}<br>};<br>在某些类不兼容`</strong>weak<code>的情况下，你可以使用</code><strong>unsafe_unretained<code>。但是，这样做会让你的循环不严格，因为很难或者不可能验证</code></strong>unsafe_unretained`指针是否有效，是否依然指向相同的对象。</p>
+<pre><code>MyViewController *myController = [[MyViewController alloc] init…];
+// ...
+myController.completionHandler =  ^(NSInteger result) {
+   [myController dismissViewControllerAnimated:YES completion:nil];
+};
+[self presentViewController:myController animated:YES completion:^{
+   [myController release];
+}];
+</code></pre><p>像上面讲的那样，你可以用一个<code>__block</code>限定符，然后在<code>completion handler</code>把<code>myController</code>变量设置成nil：</p>
+<pre><code>MyViewController * __block myController = [[MyViewController alloc] init…];
+// ...
+myController.completionHandler =  ^(NSInteger result) {
+    [myController dismissViewControllerAnimated:YES completion:nil];
+    myController = nil;
+};
+</code></pre><p>或者你可以用<code>__weak</code>临时变量。下面的例子显示了一个简单的定义：</p>
+<pre><code>MyViewController *myController = [[MyViewController alloc] init…];
+// ...
+MyViewController * __weak weakMyViewController = myController;
+myController.completionHandler =  ^(NSInteger result) {
+    [weakMyViewController dismissViewControllerAnimated:YES completion:nil];
+};
+</code></pre><p>前面讲到weak指针，没有其它strong指针指向对象的时候会自动置为nil，为了保证block执行期间对象不被释放（<strong>可能在其它线程中被释放</strong>），你应该这么做：</p>
+<pre><code>MyViewController *myController = [[MyViewController alloc] init…];
+// ...
+MyViewController * __weak weakMyController = myController;
+myController.completionHandler =  ^(NSInteger result) {
+    MyViewController *strongMyController = weakMyController;
+    if (strongMyController) {
+        // ...
+        [strongMyController dismissViewControllerAnimated:YES completion:nil];
+        // ...
+    }
+    else {
+        // Probably nothing...
+    }
+};
+</code></pre><p>在某些类不兼容<code>__weak</code>的情况下，你可以使用<code>__unsafe_unretained</code>。但是，这样做会让你的循环不严格，因为很难或者不可能验证<code>__unsafe_unretained</code>指针是否有效，是否依然指向相同的对象。</p>
 <h3 id="ARC使用新的语句管理Autorelease-Pools"><a href="#ARC使用新的语句管理Autorelease-Pools" class="headerlink" title="ARC使用新的语句管理Autorelease Pools"></a>ARC使用新的语句管理Autorelease Pools</h3><p>使用ARC，你不能直接使用<code>NSAutoreleasePool</code>类来管理自动释放池。作为替代，你可以使用<code>@ autoreleasepool</code>块：</p>
-<p>@autoreleasepool {<br>// Code, such as a loop that creates a large number of temporary objects.<br>}<br>这个简单的结构允许编译器思考引用计数状态。进入块的时候，一个自动释放池被<em>push</em>进栈。在退出的时候（<code>break</code>、<code>return</code>、<code>goto</code>、<code>fall-through</code>等等）自动释放池被<em>pop</em>。为了兼容现有的代码，如果因为一个异常退出，自动释放池不会被<em>pop</em>。<br>这个愈发在所有<strong>Objective-C</strong>模式下都支持。它比<code>NSAutoreleasePool</code>类效率更高；鼓励用它来代替<code>NSAutoreleasePool</code>的位置。</p>
+<pre><code>@autoreleasepool {
+     // Code, such as a loop that creates a large number of temporary objects.
+}
+</code></pre><p>这个简单的结构允许编译器思考引用计数状态。进入块的时候，一个自动释放池被<em>push</em>进栈。在退出的时候（<code>break</code>、<code>return</code>、<code>goto</code>、<code>fall-through</code>等等）自动释放池被<em>pop</em>。为了兼容现有的代码，如果因为一个异常退出，自动释放池不会被<em>pop</em>。<br>这个愈发在所有<strong>Objective-C</strong>模式下都支持。它比<code>NSAutoreleasePool</code>类效率更高；鼓励用它来代替<code>NSAutoreleasePool</code>的位置。</p>
 <h3 id="平台间定义Outlets的模式变得一致"><a href="#平台间定义Outlets的模式变得一致" class="headerlink" title="平台间定义Outlets的模式变得一致"></a>平台间定义Outlets的模式变得一致</h3><p>在iOS和OS X中使用ARC定义outlets的模式变得一致了。你应该遵循的模式是：outlets应该是weak，除了那些nib文件（或者storyboardscene）中顶层的对象应该是strong。<br>详细的信息可以查看<a href="https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/LoadingResources/Introduction/Introduction.html#//apple_ref/doc/uid/10000051i" target="_blank" rel="external">Resource Programming Guide</a>中的<a href="https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/LoadingResources/CocoaNibs/CocoaNibs.html#//apple_ref/doc/uid/10000051i-CH4" target="_blank" rel="external">Nib Files</a>。</p>
 <h3 id="栈变量初始值为nil"><a href="#栈变量初始值为nil" class="headerlink" title="栈变量初始值为nil"></a>栈变量初始值为nil</h3><p>使用ARC时，<code>strong</code>、<code>weak</code>和<code>autoreleasing</code>栈变量隐式地用nil初始化。例如：</p>
-<ul>
-<li>(void)myMethod {<br>NSString *name;<br>NSLog(@”name: %@”, name);<br>}<br>不会崩溃，而是打印<code>name</code>的值为<code>null</code>。<h3 id="使用编译Flags来启用或关闭ARC"><a href="#使用编译Flags来启用或关闭ARC" class="headerlink" title="使用编译Flags来启用或关闭ARC"></a>使用编译<strong>Flags</strong>来启用或关闭ARC</h3>你用<em>-fobjc-arc</em>编译标志来开启<strong>ARC</strong>。如果大部分使用手动引用计数更方便的话，你可以选择以文件为单位开启<strong>ARC</strong>。对于那些开启了ARC的工程，你可以用<em>-fno-objc-arc</em>编译标志来给指定的文件关闭<strong>ARC</strong>。<br>ARC支持Xcode4.2以上，OS X v10.6以上，iOS4.0以上。<em>Weak</em>引用不支持OS X v10.6和iOS 4。Xcode 4.1和之前的版本不支持<strong>ARC</strong>。</li>
-</ul>
+<pre><code>- (void)myMethod {
+    NSString *name;
+    NSLog(@&quot;name: %@&quot;, name);
+}
+</code></pre><p>不会崩溃，而是打印<code>name</code>的值为<code>null</code>。</p>
+<h3 id="使用编译Flags来启用或关闭ARC"><a href="#使用编译Flags来启用或关闭ARC" class="headerlink" title="使用编译Flags来启用或关闭ARC"></a>使用编译<strong>Flags</strong>来启用或关闭ARC</h3><p>你用<em>-fobjc-arc</em>编译标志来开启<strong>ARC</strong>。如果大部分使用手动引用计数更方便的话，你可以选择以文件为单位开启<strong>ARC</strong>。对于那些开启了ARC的工程，你可以用<em>-fno-objc-arc</em>编译标志来给指定的文件关闭<strong>ARC</strong>。<br>ARC支持Xcode4.2以上，OS X v10.6以上，iOS4.0以上。<em>Weak</em>引用不支持OS X v10.6和iOS 4。Xcode 4.1和之前的版本不支持<strong>ARC</strong>。</p>
 <h1 id="处理Toll-Free-Bridging"><a href="#处理Toll-Free-Bridging" class="headerlink" title="处理Toll-Free Bridging"></a>处理Toll-Free Bridging</h1><p>在许多<strong>Cocoa</strong>应用中，你需要用到<strong>Core Foundation</strong>风格的对象。不管你是直接只用<strong>Core Foundation</strong>框架（比如<code>CFArrayRef</code>或<code>CFMutableDictionaryRef</code>），还是使用集成了<code>Core Foundation</code>框架的一些框架，比如<strong>Core Graphics</strong>框架（你可能用到<code>CGColorSpaceRef</code>和<code>CGGradientRef</code>）。<br>编译器不会自动处理<strong>Core Foundation</strong>对象的生命周期；如<strong>Core Foundation</strong>内存管理规则（查看<a href="https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/CFMemoryMgmt.html#//apple_ref/doc/uid/10000127i" target="_blank" rel="external">Memory Management Programming Guide for Core Foundation</a>）里所述，你必须调用<code>CFRetain</code>和<code>CFRelease</code>（或者其它相关的变体）。<br>如果你在<strong>Objective-C</strong>和<strong>Core Foundation</strong>对象之间转化，你必须要告诉编译器怎么处理对象的生命周期，你可以使用类型转换限定符（<code>objc/runtime.h</code>里定义的）或者<strong>Core Foundation</strong>宏（<code>NSObject.h</code>里定义的）。<br><code>__bridge</code>让对象在<strong>Objective-C</strong>和<strong>Core Foundation</strong>之间转换，但是并不转换所有权。<br><code>__bridge_retained</code>或者<code>CFBridgingRetain</code>把一个<strong>Objective-C</strong>指针转化成<strong>Core Foundation</strong>指针，并把对象的所有权转移给你。你负责调用<code>CFRelease</code>或者相关的方法来释放对象的所有权。<br><code>__bridge_transfer</code>或者<code>CFBridgingRelease</code>把一个非<strong>Objective-C</strong>指针转换到<strong>Objective-C</strong>指针，并把对象的所有权转交给<strong>ARC</strong>。<strong>ARC</strong> 来负责对象的释放。<br>例如，如果你有这样的代码：</p>
+<pre><code>- (void)logFirstNameOfPerson:(ABRecordRef)person {
+
+    NSString *name = (NSString *)ABRecordCopyValue(person, kABPersonFirstNameProperty);
+    NSLog(@&quot;Person&apos;s first name: %@&quot;, name);
+    [name release];
+}
+</code></pre><p>用可以用下面的代码替换:</p>
+<pre><code>- (void)logFirstNameOfPerson:(ABRecordRef)person {
+
+    NSString *name = (NSString *)CFBridgingRelease(ABRecordCopyValue(person, kABPersonFirstNameProperty));
+    NSLog(@&quot;Person&apos;s first name: %@&quot;, name);
+}
+</code></pre><h3 id="编译器处理从Cocoa方法返回的CF对象"><a href="#编译器处理从Cocoa方法返回的CF对象" class="headerlink" title="编译器处理从Cocoa方法返回的CF对象"></a>编译器处理从<strong>Cocoa</strong>方法返回的<strong>CF</strong>对象</h3><p>编译器理解遵循<strong>Cocoa</strong>命名规则（查看<a href="https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/CFMemoryMgmt.html#//apple_ref/doc/uid/10000127i" target="_blank" rel="external">Advanced Memory Management Programming Guide</a>），并返回<strong>Core Foundation</strong>类型的<strong>Objective-C</strong>方法返回。例如，编译器知道，在iOS中，<code>UIColor</code>类的<code>CGColor</code>方法返回的<code>CGColor</code>对象不会被拥有。但是你还是需要使用正确的类型转换，如下面的例子所示：</p>
+<pre><code>NSMutableArray *colors = [NSMutableArray arrayWithObject:(id)[[UIColor darkGrayColor] CGColor]];
+[colors addObject:(id)[[UIColor lightGrayColor] CGColor]];
+</code></pre><h3 id="使用所有权关键字转换函数参数"><a href="#使用所有权关键字转换函数参数" class="headerlink" title="使用所有权关键字转换函数参数"></a>使用所有权关键字转换函数参数</h3><p>当你在函数调用时在<strong>Objective-C</strong>和<strong>Core Foundation</strong>对象之间转化，你需要告诉编译器你传的对象的所有权。<strong>Core Foundation</strong>对象的所有权规则和那些在<strong>Core Foundation</strong>内存管理规则中定义的规则一样（查看<a href="https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i" target="_blank" rel="external">Memory Management Programming Guide for Core Foundation</a>）；<strong>Objective-C</strong>对象的所有权规则在<a href="https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i" target="_blank" rel="external">Advanced Memory Management Programming Guide</a>中定义。<br>在下面的代码段中，传递给<code>CGGradientCreateWithColors</code>函数的数组需要一个合适的转换。<code>arrayWithObjects:</code>返回的对象的所有权没有传递给函数，尽管用的是<code>__bridge</code>。</p>
+<pre><code>NSArray *colors = &lt;#An array of colors#&gt;;
+CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)colors, locations);
+</code></pre><p>在下面的方法定义中，代码段显示在上下文中。注意（<strong>Core Foundation</strong>内存管理规则中规定的）<strong>Core Foundation</strong>内存管理函数怎么使用。</p>
+<pre><code>- (void)drawRect:(CGRect)rect {
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
+    CGFloat locations[2] = {0.0, 1.0};
+    NSMutableArray *colors = [NSMutableArray arrayWithObject:(id)[[UIColor darkGrayColor] CGColor]];
+    [colors addObject:(id)[[UIColor lightGrayColor] CGColor]];
+    CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)colors, locations);
+    CGColorSpaceRelease(colorSpace);  // Release owned Core Foundation object.
+    CGPoint startPoint = CGPointMake(0.0, 0.0);
+    CGPoint endPoint = CGPointMake(CGRectGetMaxX(self.bounds), CGRectGetMaxY(self.bounds));
+    CGContextDrawLinearGradient(ctx, gradient, startPoint, endPoint,
+                            kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
+    CGGradientRelease(gradient);  // Release owned Core Foundation object.
+}
+</code></pre><p>＃转化工程到ARC时的常见问题<br>当迁移已有工程的时候，你可能会遇到许多问题。这里是一些常见的问题和解决方法。</p>
 <ul>
-<li>(void)logFirstNameOfPerson:(ABRecordRef)person {</li>
-</ul>
-<p>NSString <em>name = (NSString </em>)ABRecordCopyValue(person, kABPersonFirstNameProperty);<br>NSLog(@”Person’s first name: %@”, name);<br>[name release];<br>}<br>用可以用下面的代码替换:</p>
-<ul>
-<li>(void)logFirstNameOfPerson:(ABRecordRef)person {</li>
-</ul>
-<p>NSString <em>name = (NSString </em>)CFBridgingRelease(ABRecordCopyValue(person, kABPersonFirstNameProperty));<br>NSLog(@”Person’s first name: %@”, name);<br>}</p>
-<h3 id="编译器处理从Cocoa方法返回的CF对象"><a href="#编译器处理从Cocoa方法返回的CF对象" class="headerlink" title="编译器处理从Cocoa方法返回的CF对象"></a>编译器处理从<strong>Cocoa</strong>方法返回的<strong>CF</strong>对象</h3><p>编译器理解遵循<strong>Cocoa</strong>命名规则（查看<a href="https://developer.apple.com/library/ios/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/CFMemoryMgmt.html#//apple_ref/doc/uid/10000127i" target="_blank" rel="external">Advanced Memory Management Programming Guide</a>），并返回<strong>Core Foundation</strong>类型的<strong>Objective-C</strong>方法返回。例如，编译器知道，在iOS中，<code>UIColor</code>类的<code>CGColor</code>方法返回的<code>CGColor</code>对象不会被拥有。但是你还是需要使用正确的类型转换，如下面的例子所示：</p>
-<p>NSMutableArray *colors = [NSMutableArray arrayWithObject:(id)[[UIColor darkGrayColor] CGColor]];<br>[colors addObject:(id)[[UIColor lightGrayColor] CGColor]];</p>
-<h3 id="使用所有权关键字转换函数参数"><a href="#使用所有权关键字转换函数参数" class="headerlink" title="使用所有权关键字转换函数参数"></a>使用所有权关键字转换函数参数</h3><p>当你在函数调用时在<strong>Objective-C</strong>和<strong>Core Foundation</strong>对象之间转化，你需要告诉编译器你传的对象的所有权。<strong>Core Foundation</strong>对象的所有权规则和那些在<strong>Core Foundation</strong>内存管理规则中定义的规则一样（查看<a href="https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i" target="_blank" rel="external">Memory Management Programming Guide for Core Foundation</a>）；<strong>Objective-C</strong>对象的所有权规则在<a href="https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i" target="_blank" rel="external">Advanced Memory Management Programming Guide</a>中定义。<br>在下面的代码段中，传递给<code>CGGradientCreateWithColors</code>函数的数组需要一个合适的转换。<code>arrayWithObjects:</code>返回的对象的所有权没有传递给函数，尽管用的是<code>__bridge</code>。</p>
-<p>NSArray <em>colors = &lt;#An array of colors#&gt;;<br>CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)colors, locations);<br>在下面的方法定义中，代码段显示在上下文中。注意（<strong>Core Foundation</strong>内存管理规则中规定的）<em>*Core Foundation</em></em>内存管理函数怎么使用。</p>
-<ul>
-<li>(void)drawRect:(CGRect)rect {<br>CGContextRef ctx = UIGraphicsGetCurrentContext();<br>CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();<br>CGFloat locations[2] = {0.0, 1.0};<br>NSMutableArray *colors = [NSMutableArray arrayWithObject:(id)[[UIColor darkGrayColor] CGColor]];<br>[colors addObject:(id)[[UIColor lightGrayColor] CGColor]];<br>CGGradientRef gradient = CGGradientCreateWithColors(colorSpace, (__bridge CFArrayRef)colors, locations);<br>CGColorSpaceRelease(colorSpace);  // Release owned Core Foundation object.<br>CGPoint startPoint = CGPointMake(0.0, 0.0);<br>CGPoint endPoint = CGPointMake(CGRectGetMaxX(self.bounds), CGRectGetMaxY(self.bounds));<br>CGContextDrawLinearGradient(ctx, gradient, startPoint, endPoint,<br>kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);<br>CGGradientRelease(gradient);  // Release owned Core Foundation object.<br>}<br>＃转化工程到ARC时的常见问题<br>当迁移已有工程的时候，你可能会遇到许多问题。这里是一些常见的问题和解决方法。</li>
-</ul>
-<ul>
-<li>你不能调用<code>retain</code>、<code>release</code>或者<code>autorelease</code>。<br>这是一个特性。你也不能这么写：<br>while ([x retainCount]) { [x release]; }</li>
+<li>你不能调用<code>retain</code>、<code>release</code>或者<code>autorelease</code>。<br>这是一个特性。你也不能这么写：<pre><code>while ([x retainCount]) { [x release]; }
+</code></pre></li>
 <li>你不能调用<code>dealloc</code>。<br>典型地，如果你定义一个单例或者在<code>init</code>方法中替换一个对象时，你要调用<code>dealloc</code>。对于单例，使用共享实例模式。在<code>init</code>方法中，你不需要再调用<code>dealloc</code>方法，因为当你覆盖self的时候对象会自动释放。</li>
 <li>你不能使用<code>NSAutoreleasePool</code>对象。<br>使用心得<code>@autoreleasepool{}</code>结构来代替它。它在你的自动释放池上包装了一个块结构，并且会比<code>NSAutoreleasePool</code>快上6倍。<code>@autoreleasepool</code>在非<strong>ARC</strong>代码下也能工作。因为<code>@autoreleasepool</code>比<code>NSAutoreleasePool</code>快很多，所有许多“性能问题”可以无脑地把<code>NSAutoreleasePool</code>替换为<code>@autoreleasepool</code>。<br>迁移工具可以处理简单的<code>NSAutoreleasePool</code>，但是不能处理复杂情况下的，也不能处理在<code>@autoreleasepool</code>块里定义变量，然后在后面才使用这个变量的情况。</li>
-<li><strong> ARC</strong>需要你在<code>init</code>方法中把<code>[super init]</code>的返回值赋给<code>self</code>。<br>下面的<code>init</code>方法在<strong>ARC</strong>中是非法的：<br>[super init];<br>简单的修改一下:<br>self = [super init];<br>完整的修改方法是像上面那样做，并在继续前检查结果是nil：<br>self = [super init];<br>if (self) {<br>…</li>
+<li><strong> ARC</strong>需要你在<code>init</code>方法中把<code>[super init]</code>的返回值赋给<code>self</code>。<br>下面的<code>init</code>方法在<strong>ARC</strong>中是非法的：<pre><code>[super init];
+</code></pre>简单的修改一下:<pre><code>self = [super init];
+</code></pre>完整的修改方法是像上面那样做，并在继续前检查结果是nil：<pre><code>self = [super init];
+if (self) {
+...
+</code></pre></li>
 <li><p>你不能自定义<code>retain</code>或者<code>release</code>方法。<br>自定义<code>retain</code>或者<code>release</code>方法来实现<code>weak</code>指针。你可能因为一些常见的原因想要自定义：</p>
-</li>
-<li><p>性能.<br>请不要在这么做；现在<code>NSObject</code>类的<code>retain</code>和<code>release</code>方法比以前更快了。如果你还是发现问题，请提交bug。</p>
-</li>
+<ul>
+<li>性能.<br>请不要在这么做；现在<code>NSObject</code>类的<code>retain</code>和<code>release</code>方法比以前更快了。如果你还是发现问题，请提交bug。</li>
 <li>定义<em>weak</em>指针系统<br>使用<code>__weak</code>来代替。</li>
 <li>定义单例。<br>使用共享实例模式来代替。或者，使用类方法代替实例方法，可以完全避免分配对象。</li>
-<li>“Assigned”实例变量变成<code>strong</code>。<br>在<strong>ARC</strong>之前，实例变量不拥有对象－直接给实例变量赋值一个对象不会保持对象的生命周期。为了使属性变成<code>strong</code>，你通常可以定义或者<code>synthesized</code>存取器方法来调用合适的内存管理方法；形成鲜明地对比，你可能像下面例子中展示的那样，定义了一个存取器方法来获得一个<em>weak</em>属性。<br>@interface MyClass : Superclass {<br>id thing; // Weak reference.<br>}<br>// …<br>@end</li>
 </ul>
-<p>@implementation MyClass</p>
-<ul>
-<li>(id)thing {<br>return thing;<br>}</li>
-<li>(void)setThing:(id)newThing {<br>thing = newThing;<br>}<br>// …<br>@end<br>使用<strong>ARC</strong>，实例变量默认是<code>strong</code>引用－直接给实例变量赋值一个对象会保持对象的生命周期。迁移工具不能决定什么时候实例变量是<code>weak</code>。为了得到之前一样的效果，你必须把实例变量标志为<em>weak</em>，或者使用属性。<br>@interface MyClass : Superclass {<br>id __weak thing;<br>}<br>// …<br>@end</li>
-</ul>
-<p>@implementation MyClass</p>
-<ul>
-<li>(id)thing {<br>return thing;<br>}</li>
-<li>(void)setThing:(id)newThing {<br>thing = newThing;<br>}<br>// …<br>@end<br>或者:<br>@interface MyClass : Superclass<br>@property (weak) id thing;<br>// …<br>@end</li>
-</ul>
-<p>@implementation MyClass<br>@synthesize thing;<br>// …<br>@end</p>
-<ul>
-<li>你不能在C结构题中使用<code>strong</code>对象。<br>例如下面的代码不能通过编译：<br>struct X { id x; float y; };<br>这是因为x默认是<code>strong</code>，编译器不能安全地合成让它能正确工作的代码。例如，如果你传了一个指向那种结构体的指针到处理释放的代码中，每个<code>id</code>都会在结构体释放前释放。编译器做这些是不可靠的，所以在<strong>ARC</strong>模式下结构题中<code>strong</code>对象是不允许的。有一些解决方案：</li>
-</ul>
-<ol>
+</li>
+<li><p>“Assigned”实例变量变成<code>strong</code>。<br>在<strong>ARC</strong>之前，实例变量不拥有对象－直接给实例变量赋值一个对象不会保持对象的生命周期。为了使属性变成<code>strong</code>，你通常可以定义或者<code>synthesized</code>存取器方法来调用合适的内存管理方法；形成鲜明地对比，你可能像下面例子中展示的那样，定义了一个存取器方法来获得一个<em>weak</em>属性。</p>
+<pre><code>@interface MyClass : Superclass {
+    id thing; // Weak reference.
+}
+// ...
+@end
+
+@implementation MyClass
+- (id)thing {
+    return thing;
+}
+- (void)setThing:(id)newThing {
+    thing = newThing;
+}
+// ...
+@end
+</code></pre><p>使用<strong>ARC</strong>，实例变量默认是<code>strong</code>引用－直接给实例变量赋值一个对象会保持对象的生命周期。迁移工具不能决定什么时候实例变量是<code>weak</code>。为了得到之前一样的效果，你必须把实例变量标志为<em>weak</em>，或者使用属性。</p>
+<pre><code>@interface MyClass : Superclass {
+    id __weak thing;
+}
+// ...
+@end
+
+@implementation MyClass
+- (id)thing {
+    return thing;
+}
+- (void)setThing:(id)newThing {
+    thing = newThing;
+}
+// ...
+@end
+</code></pre><p>或者:</p>
+<pre><code>@interface MyClass : Superclass
+@property (weak) id thing;
+// ...
+@end
+
+@implementation MyClass
+@synthesize thing;
+// ...
+@end
+</code></pre></li>
+<li>你不能在C结构题中使用<code>strong</code>对象。<br>例如下面的代码不能通过编译：<pre><code>struct X { id x; float y; };
+</code></pre>这是因为x默认是<code>strong</code>，编译器不能安全地合成让它能正确工作的代码。例如，如果你传了一个指向那种结构体的指针到处理释放的代码中，每个<code>id</code>都会在结构体释放前释放。编译器做这些是不可靠的，所以在<strong>ARC</strong>模式下结构题中<code>strong</code>对象是不允许的。有一些解决方案：<ol>
 <li>使用<strong>Objective-C</strong>来代替机构提。<br>这被认为是最好的方案。</li>
 <li>如果使用<strong>Objective-C</strong>是次级方法，（可能你想使用这些结构体的数组）你可以考虑使用<code>void *</code>来代替。<br>这需要使用显示的转换，如下面所述。</li>
-<li>把对象引用弄成<code>__unsafe_unretained</code>。<br>这个方法在像这样的并不常见的模式中可能有用：<br>struct x { NSString <em>S;  int X; } StaticArray[] = {<br>@”foo”, 42,<br>@”bar, 97,<br>…<br>};<br>你像这样定义结构题：<br>struct x { NSString </em> __unsafe_unretained S; int X; }<br>这样做可能会出问题，并且是不安全的，因为对象可能会被释放，但是对于那些永久存在的对象可能非常有用，比如字符串常量。<br>你不能在<code>id</code>类型和<code>void*</code>类型之间直接转换（包括<strong>Core Foundation</strong>类型）。<br>这些在前面的<strong>处理Toll-Free Bridging</strong>中已经讨论过。</li>
+<li>把对象引用弄成<code>__unsafe_unretained</code>。<br>这个方法在像这样的并不常见的模式中可能有用：<pre><code>struct x { NSString *S;  int X; } StaticArray[] = {
+        @&quot;foo&quot;, 42,
+  @&quot;bar, 97,
+...
+};
+</code></pre>你像这样定义结构题：<pre><code>struct x { NSString * __unsafe_unretained S; int X; }
+</code></pre>这样做可能会出问题，并且是不安全的，因为对象可能会被释放，但是对于那些永久存在的对象可能非常有用，比如字符串常量。<br>你不能在<code>id</code>类型和<code>void*</code>类型之间直接转换（包括<strong>Core Foundation</strong>类型）。<br>这些在前面的<strong>处理Toll-Free Bridging</strong>中已经讨论过。</li>
 </ol>
+</li>
+</ul>
 <h1 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h1><h3 id="我怎么理解ARC-它在哪里插入retain-release？"><a href="#我怎么理解ARC-它在哪里插入retain-release？" class="headerlink" title="我怎么理解ARC?它在哪里插入retain/release？"></a>我怎么理解<strong>ARC</strong>?它在哪里插入<em>retain/release</em>？</h3><p>不要去考虑<em>retain/release</em>在哪里插入的，去考虑你的程序的算法。考虑你的对象的”strong and weak”指针，考虑对象的拥有关系，考虑哪里可能会<em>retain cycles</em>。</p>
 <h3 id="我仍然需要给我的对象写dealloc方法吗？"><a href="#我仍然需要给我的对象写dealloc方法吗？" class="headerlink" title="我仍然需要给我的对象写dealloc方法吗？"></a>我仍然需要给我的对象写<code>dealloc</code>方法吗？</h3><p>可能需要。<br>因为<strong>ARC</strong>不会自动<code>malloc/free</code>，不会管理<strong>Core Foundation</strong>对象和<em>file descriptors</em>的生命周期，等等。你还是需要写一个<code>dealloc</code>方法来释放这些资源。<br>你不需要去释放实例变量，但是你可能需要给系统类和其它没有使用ARC编译的代码调用<code>[self setDelegate:nil]</code>。</p>
 <h3 id="ARC仍然可能发生retain-cycles吗？"><a href="#ARC仍然可能发生retain-cycles吗？" class="headerlink" title="ARC仍然可能发生retain cycles吗？"></a>ARC仍然可能发生retain cycles吗？</h3><p>是的。<br>ARC自动retain/release，并继承了retain cycles问题。幸运的是，迁移到ARC的代码很少发生内存泄漏，因为不管指针的属性是不是retain，都已经自动合成了释放代码</p>
 <h3 id="block在ARC里怎么工作的？"><a href="#block在ARC里怎么工作的？" class="headerlink" title="block在ARC里怎么工作的？"></a>block在ARC里怎么工作的？</h3><p>在ARC模式下，你仅仅需要在栈上传block，它们就能工作了。你不再需要调用Block Copy。<br>有一点需要注意，<code>NSString * __block myString</code>在ARC模式下会retain对象，而不是一个可能会变成野指针的指针。为了获得以前一样的效果，使用<code>__block NSString * __unsafe_unretained</code>或使用<code>__block NSString * __weak myString</code>（这种更好）。</p>
 <h3 id="我可以在OS-X雪豹上用ARC开发吗？"><a href="#我可以在OS-X雪豹上用ARC开发吗？" class="headerlink" title="我可以在OS X雪豹上用ARC开发吗？"></a>我可以在OS X雪豹上用ARC开发吗？</h3><p>不行。雪豹Xcode4.2不支持ARC，因为它不包含10.7SDK。雪豹Xcode 4.2支持iOS上的ARC，<strong>Lion</strong>Xcode 4.2OS X和iOS都支持。这意味着，你需要在<strong>Lion</strong>系统上<em>build**</em>ARC**应用，然后在雪豹系统上运行。</p>
 <h3 id="在ARC下我可以创建一个retained指针的C数组吗？"><a href="#在ARC下我可以创建一个retained指针的C数组吗？" class="headerlink" title="在ARC下我可以创建一个retained指针的C数组吗？"></a>在ARC下我可以创建一个<em>retained</em>指针的C数组吗？</h3><p>是的，你可以，下面例子里说明了怎么做：</p>
-<p>// Note calloc() to get zero-filled memory.<br><strong>strong SomeClass **dynamicArray = (</strong>strong SomeClass <em>*)calloc(entries, sizeof(SomeClass </em>));<br>for (int i = 0; i &lt; entries; i++) {<br>dynamicArray[i] = [[SomeClass alloc] init];<br>}</p>
-<p>// When you’re done, set each entry to nil to tell ARC to release the   object.<br>for (int i = 0; i &lt; entries; i++) {<br>dynamicArray[i] = nil;<br>}<br>free(dynamicArray);<br>有些要注意的东西：<br>在某些情况下你需要写<code>__strong SomeClass **</code>，因为默认是<code>__autoreleasing SomeClass **</code>。<br>这些分配的内存必须是零填充。<br>在释放数组（<code>memset</code>或者<code>bzero</code>没用）前必须要把每个元素都设置成nil。<br>你应该避免<code>memcpy</code>或者<code>realloc</code>。</p>
+<pre><code>// Note calloc() to get zero-filled memory.
+__strong SomeClass **dynamicArray = (__strong SomeClass **)calloc(entries, sizeof(SomeClass *));
+for (int i = 0; i &lt; entries; i++) {
+     dynamicArray[i] = [[SomeClass alloc] init];
+}
+
+// When you&apos;re done, set each entry to nil to tell ARC to release the   object.
+for (int i = 0; i &lt; entries; i++) {
+     dynamicArray[i] = nil;
+}
+free(dynamicArray);
+</code></pre><p>有些要注意的东西：<br>在某些情况下你需要写<code>__strong SomeClass **</code>，因为默认是<code>__autoreleasing SomeClass **</code>。<br>这些分配的内存必须是零填充。<br>在释放数组（<code>memset</code>或者<code>bzero</code>没用）前必须要把每个元素都设置成nil。<br>你应该避免<code>memcpy</code>或者<code>realloc</code>。</p>
 <h3 id="ARC慢吗？"><a href="#ARC慢吗？" class="headerlink" title="ARC慢吗？"></a>ARC慢吗？</h3><p>它取决于你测量什么，但是一般情况下是“不会”。编译器有效地消除了许多<em>retain/release</em>调用，而且通常Objective-C runtime为ARC的速度作了很多优化。特别是，那些返回一个<em>retain/autoreleased</em>对象的模式会更快，因为当调用方法的代码是<strong>ARC</strong>模式下，对象不会被放进自动释放池。<br>一个需要注意的问题是在通常的debug配置下优化程序不会运行，因此在-O0下比-Os下可以看到更多<em>retain/release</em>。</p>
 <h3 id="ARC在ObjC-模式下能工作吗？"><a href="#ARC在ObjC-模式下能工作吗？" class="headerlink" title="ARC在ObjC++模式下能工作吗？"></a>ARC在ObjC++模式下能工作吗？</h3><p>是的。你也可以把<em>strong/weak</em>对象放在类和容器里面。<strong>ARC</strong>编译器在拷贝构造函数和析构函数中自动生成<em>retain/release</em>逻辑。</p>
 <h3 id="哪些类不支持weak引用？"><a href="#哪些类不支持weak引用？" class="headerlink" title="哪些类不支持weak引用？"></a>哪些类不支持<em>weak</em>引用？</h3><p>目前你不能创建下面类的<em>weak</em>引用：<br><strong>NSATSTypesetter</strong>, <strong>NSColorSpace</strong>, <strong>NSFon</strong>t, <strong>NSMenuView</strong>, <strong>NSParagraphStyle</strong>, <strong>NSSimpleHorizontalTypesetter</strong>, and <strong>NSTextView</strong>.<br>注意：另外，在OS X v10.7下，你不能创建<strong>NSFontManager</strong>, <strong>NSFontPanel</strong>, <strong>NSImage</strong>, <strong>NSTableCellView</strong>, <strong>NSViewController</strong>, <strong>NSWindow</strong>, 和 <strong>NSWindowController</strong>的<em>weak</em>引用。还有，在OS X v10.7下<strong>AVFoundation</strong>框架下的类都不支持weak引用。<br>定义属性的时候，你应该用<code>assign</code>来代替<code>weak</code>；对于变量，你应该使用<code>__unsafe_unretained</code>代替<code>__weak</code>。<br>另外，在ARC下你不能创建<strong>NSHashTable</strong>,<strong>NSMapTable</strong>,或<strong>NSPointerArray</strong>的<em>weak</em>引用。</p>
