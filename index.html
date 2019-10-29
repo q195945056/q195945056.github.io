@@ -35,6 +35,15 @@
         }
     };
     dolink();
+    if (isiOS) {
+        if (window._czc) {
+            window._czc.push(['_trackEvent', 'zxyx_pageview', 'view', 'ios']);
+        }
+    } else {
+        if (window._czc) {
+            window._czc.push(['_trackEvent', 'zxyx_pageview', 'view', 'az']);
+        }
+    }
 </script>
 <style>
 html, body {
